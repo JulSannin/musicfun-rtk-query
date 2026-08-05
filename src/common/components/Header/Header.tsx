@@ -11,9 +11,9 @@ const navItems  = [
 
 export const Header = () => {
     return (
-        <header className={s.header}>
+        <header className={s.container}>
             <nav>
-                <ul className={s.navList}>
+                <ul className={s.list}>
                     {navItems.map((item) => (
                         <li key={item.to}>
                             <NavLink 
