@@ -1,5 +1,7 @@
 import s from './PageNotFound.module.css'
- 
+
+// страница 404
+// показывается на любом адресе, которого нет в роутере
 export const PageNotFound = () => {
   return (
     <>
