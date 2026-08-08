@@ -5,6 +5,9 @@ import {store} from "./app/model/store";
 import {App} from "./app";
 import "./index.css";
 
+// точка входа приложения
+// оборачиваем App в провайдеры:
+// BrowserRouter дает роутинг, Provider дает доступ к redux store
 createRoot(document.getElementById("root")!).render(
     <BrowserRouter>
         <Provider store={store}>
