@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
-import { playlistsApi } from '@/features/playlists/api/playlistsApi'
+import { baseApi } from '../api/baseApi'
 
 // redux store всего приложения
 // RTK Query подключается двумя частями:
@@ -8,10 +8,10 @@ import { playlistsApi } from '@/features/playlists/api/playlistsApi'
 // middleware следит за подписками, инвалидацией тегов и очисткой кеша
 export const store = configureStore({
   reducer: {
-    [playlistsApi.reducerPath]: playlistsApi.reducer,
+    [baseApi.reducerPath]: baseApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(playlistsApi.middleware),
+    getDefaultMiddleware().concat(baseApi.middleware),
 })
 
 // подписывается на события браузера: возврат фокуса на вкладку и появление сети

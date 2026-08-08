@@ -21,7 +21,7 @@ export const PlayListsPage = () => {
 
     // RTK Query хук, получает список плейлистов для рендеринга
     // каждая страница кешируется отдельно, поэтому возврат назад мгновенный
-    const {data, isLoading, isError} = useFetchPlaylistsQuery({
+    const {data, isLoading, isFetching, isError} = useFetchPlaylistsQuery({
         pageNumber: page,
     });
 
@@ -67,30 +67,34 @@ export const PlayListsPage = () => {
 
             <CreatePlaylistForm />
 
-            <div className={s.items}>
-                {data?.data.map((playlist) => {
-                    // проверяем, редактируется ли текущий плейлист
-                    const isEditing = playlistId === playlist.id;
-                    return (
-                        <div className={s.item} key={playlist.id}>
-                            {/* редактируем этот плейлист — показываем форму, */}
-                            {/* иначе обычную карточку */}
-                            {isEditing ? (
-                                <UpdatePlaylistForm
-                                    selectedPlaylistId={playlistId}
-                                    onPlaylistSelect={setPlaylistId}
-                                />
-                            ) : (
-                                <PlaylistItem
-                                    playlist={playlist}
-                                    onUpdate={setPlaylistId}
-                                    onDelete={deletePlaylistHandler}
-                                />
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+            {isFetching ? (
+                <div>Loading...</div>
+            ) : (
+                <div className={s.items}>
+                    {data?.data.map((playlist) => {
+                        // проверяем, редактируется ли текущий плейлист
+                        const isEditing = playlistId === playlist.id;
+                        return (
+                            <div className={s.item} key={playlist.id}>
+                                {/* редактируем этот плейлист — показываем форму, */}
+                                {/* иначе обычную карточку */}
+                                {isEditing ? (
+                                    <UpdatePlaylistForm
+                                        selectedPlaylistId={playlistId}
+                                        onPlaylistSelect={setPlaylistId}
+                                    />
+                                ) : (
+                                    <PlaylistItem
+                                        playlist={playlist}
+                                        onUpdate={setPlaylistId}
+                                        onDelete={deletePlaylistHandler}
+                                    />
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
             {pagination}
         </div>
     );
