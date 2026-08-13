@@ -1,6 +1,6 @@
-import { configureStore } from '@reduxjs/toolkit'
-import { setupListeners } from '@reduxjs/toolkit/query'
-import { baseApi } from '../api/baseApi'
+import { configureStore } from "@reduxjs/toolkit";
+import { setupListeners } from "@reduxjs/toolkit/query";
+import { baseApi } from "../api/baseApi";
 
 // redux store всего приложения
 // RTK Query подключается двумя частями:
@@ -12,9 +12,9 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(baseApi.middleware),
-})
+});
 
 // подписывается на события браузера: возврат фокуса на вкладку и появление сети
-// сам по себе refetch не включает — для этого нужны опции
-// refetchOnFocus / refetchOnReconnect, сейчас они не заданы
-setupListeners(store.dispatch)
+// сам по себе refetch не включает — опции задаются на месте вызова хука,
+// сейчас refetchOnFocus включен в PlayListsPage
+setupListeners(store.dispatch);

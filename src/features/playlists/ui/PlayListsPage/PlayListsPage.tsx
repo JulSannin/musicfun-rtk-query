@@ -1,101 +1,82 @@
-import {useState} from "react";
-import {CreatePlaylistForm} from "./CreatePlaylistForm/CreatePlaylistForm";
-import {UpdatePlaylistForm} from "./UpdatePlaylistForm/UpdatePlaylistForm";
-import {PlaylistItem} from "./PlaylistItem/PlaylistItem";
-import {PlaylistPagination} from "./PlaylistPagination/PlaylistPagination";
-import {
-    useDeletePlaylistMutation,
-    useFetchPlaylistsQuery,
-} from "../../api/playlistsApi";
+import { useState } from "react";
+import { CreatePlaylistForm } from "./CreatePlaylistForm/CreatePlaylistForm";
+import { UpdatePlaylistForm } from "./UpdatePlaylistForm/UpdatePlaylistForm";
+import { PlaylistItem } from "./PlaylistItem/PlaylistItem";
+import { PlaylistPagination } from "./PlaylistPagination/PlaylistPagination";
+import { useFetchPlaylistsQuery } from "../../api/playlistsApi";
 import s from "./PlayListsPage.module.css";
 
 // страница со списком плейлистов
-// хранит состояние списка, сами карточки и формы вынесены в дочерние компоненты
+// хранит только состояние списка: какая страница открыта и что редактируем
+// мутации сюда не поднимаем, они живут в карточках рядом со своими кнопками
 export const PlayListsPage = () => {
-    // state, хранит id плейлиста, который сейчас редактируем
-    // если id выбран, вместо карточки покажем форму редактирования
-    const [playlistId, setPlaylistId] = useState<string | null>(null);
+  // state, хранит id плейлиста, который сейчас редактируем
+  // это состояние всего списка, а не карточки: форма открыта только одна
+  const [playlistId, setPlaylistId] = useState<string | null>(null);
 
-    // state, хранит номер текущей страницы списка
-    const [page, setPage] = useState<number>(1);
+  // state, хранит номер текущей страницы списка
+  const [page, setPage] = useState<number>(1);
 
-    // RTK Query хук, получает список плейлистов для рендеринга
-    // каждая страница кешируется отдельно, поэтому возврат назад мгновенный
-    const {data, isLoading, isFetching, isError} = useFetchPlaylistsQuery({
-        pageNumber: page,
-    });
+  // RTK Query хук, получает список плейлистов для рендеринга
+  // каждая страница кешируется отдельно, поэтому возврат назад мгновенный
+  // refetchOnFocus нужен из-за обложек: сервер дописывает их не мгновенно,
+  // и данные, полученные сразу после загрузки, могут быть еще без картинки
+  // работает только потому, что в store вызван setupListeners
+  const { data, isLoading, isError } = useFetchPlaylistsQuery(
+    { pageNumber: page },
+    { refetchOnFocus: true },
+  );
 
-    const [deletePlaylist] = useDeletePlaylistMutation();
+  // кнопки переключения страниц
+  // meta приходит от сервера, пока данных нет — рисовать нечего
+  // вынесены в переменную, чтобы разметку ниже не раздувать
+  const pagination = data?.meta ? (
+    <PlaylistPagination page={page} setPage={setPage} meta={data.meta} />
+  ) : null;
 
-    // обработчик удаления плейлиста
-    // удаляет плейлист после подтверждения пользователя
-    // API разрешает удалять только свои плейлисты, отсюда catch
-    const deletePlaylistHandler = (id: string) => {
-        if (confirm("Are you sure you want to delete the playlist?")) {
-            deletePlaylist(id)
-                .unwrap()
-                .catch(() => alert("Не удалось удалить плейлист"));
-        }
-    };
+  // isLoading считается отдельно для каждого набора аргументов:
+  // на еще не открытой странице он снова true, на уже загруженной — нет
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
 
-    // кнопки переключения страниц
-    // вынесены в переменную, потому что нужны и в обычной разметке, и на экране ошибки
-    const pagination = data?.meta ? (
-        <PlaylistPagination page={page} setPage={setPage} meta={data.meta} />
-    ) : null;
+  // без этой ветки упавший запрос выглядел бы как "плейлистов нет"
+  if (isError) {
+    return <div>Failed to load playlists</div>;
+  }
 
-    // isLoading true только при самой первой загрузке
-    // при переключении страниц список остается на экране
-    if (isLoading) {
-        return <div>Loading...</div>;
-    }
+  return (
+    <div className={s.container}>
+      <h1>Playlists page</h1>
 
-    // без этой ветки упавший запрос выглядел бы как "плейлистов нет"
-    // пагинацию оставляем, чтобы можно было вернуться на рабочую страницу
-    if (isError) {
-        return (
-            <>
-                <div>Не удалось загрузить плейлисты</div>
-                {pagination}
-            </>
-        );
-    }
-
-    return (
-        <div className={s.container}>
-            <h1>Playlists page</h1>
-
-            <CreatePlaylistForm />
-
-            {isFetching ? (
-                <div>Loading...</div>
-            ) : (
-                <div className={s.items}>
-                    {data?.data.map((playlist) => {
-                        // проверяем, редактируется ли текущий плейлист
-                        const isEditing = playlistId === playlist.id;
-                        return (
-                            <div className={s.item} key={playlist.id}>
-                                {/* редактируем этот плейлист — показываем форму, */}
-                                {/* иначе обычную карточку */}
-                                {isEditing ? (
-                                    <UpdatePlaylistForm
-                                        selectedPlaylistId={playlistId}
-                                        onPlaylistSelect={setPlaylistId}
-                                    />
-                                ) : (
-                                    <PlaylistItem
-                                        playlist={playlist}
-                                        onUpdate={setPlaylistId}
-                                        onDelete={deletePlaylistHandler}
-                                    />
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-            {pagination}
-        </div>
-    );
+      <CreatePlaylistForm />
+      <div className={s.items}>
+        {/* data опционально: до первого ответа его нет, и это нормально */}
+        {data?.data.map((playlist) => {
+          // проверяем, редактируется ли текущий плейлист
+          const isEditing = playlistId === playlist.id;
+          return (
+            // key берем от плейлиста, а не индекс:
+            // при удалении из середины индексы съезжают и React путает элементы
+            <div className={s.item} key={playlist.id}>
+              {/* редактируем этот плейлист — показываем форму, */}
+              {/* иначе обычную карточку */}
+              {isEditing ? (
+                <UpdatePlaylistForm
+                  // id берем из данных, а не из состояния: они здесь равны,
+                  // но так не приходится полагаться на сужение типа
+                  playlistId={playlist.id}
+                  // форме важно только закрыться, про null знает страница
+                  onClose={() => setPlaylistId(null)}
+                />
+              ) : (
+                <PlaylistItem playlist={playlist} onEdit={setPlaylistId} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {pagination}
+    </div>
+  );
 };

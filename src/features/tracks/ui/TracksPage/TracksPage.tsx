@@ -5,5 +5,5 @@ export const TracksPage = () => {
     <div>
       <h1>Tracks page</h1>
     </div>
-  )
-}
+  );
+};
