@@ -2,9 +2,9 @@
 // пока заглушка, авторизация еще не подключена
 // сейчас токен берется из .env, логина в приложении нет
 export const ProfilePage = () => {
-  return (
-    <div>
-      <h1>Profile page</h1>
-    </div>
-  );
-};
+    return (
+        <div>
+            <h1>Profile page</h1>
+        </div>
+    )
+}

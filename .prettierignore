@@ -1,5 +1,7 @@
 dist
+build
+coverage
 node_modules
 src/api-generated
-package-lock.json
 api-json
+package-lock.json
