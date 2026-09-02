@@ -3,7 +3,7 @@ import { BrowserRouter } from 'react-router'
 import { Provider } from 'react-redux'
 import { store } from './app/model/store'
 import { App } from './app'
-import './index.css'
+import './app/styles/index.css'
 
 // точка входа приложения
 // оборачиваем App в провайдеры:

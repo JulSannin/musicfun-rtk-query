@@ -10,4 +10,10 @@ export default defineConfig([
             'fsd/public-api': 'off',
         },
     },
+    {
+        rules: {
+            'fsd/insignificant-slice': 'off',
+            'fsd/repetitive-naming': 'off',
+        },
+    },
 ])

@@ -2,6 +2,6 @@ dist
 build
 coverage
 node_modules
-src/api-generated
+api-generated
 api-json
 package-lock.json

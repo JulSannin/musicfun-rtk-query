@@ -1,4 +1,4 @@
-import { Header } from '@/common'
+import { Header } from '@/widgets/header'
 import { Routing } from './routing/Routing'
 import s from './App.module.css'
 import { ToastContainer } from 'react-toastify'

@@ -9,7 +9,7 @@ import tseslint from 'typescript-eslint'
 export default defineConfig(
     globalIgnores([
         'dist',
-        'src/api-generated',
+        'aapi-generated',
         'eslint.config.ts',
         'steiger.config.ts',
         'openapi-ts.config.ts',
