@@ -35,7 +35,8 @@ export const playlistsApi = baseApi
                     }),
 
                     // помечаем кеш списка
-                    // id: "LIST" это просто метка, что запись хранит весь список
+                    // одна запись это одна страница под свои pageNumber/pageSize/search,
+                    // а тег у всех них общий, поэтому мутация сбрасывает их разом
                     providesTags: [{ type: 'Playlists', id: 'LIST' }],
                 }
             ),

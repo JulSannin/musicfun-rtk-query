@@ -4,13 +4,14 @@ export const baseApi = createApi({
     // имя ветки в redux store, где RTK Query держит свой кеш
     reducerPath: 'baseApi',
 
-    // базовые настройки для всех запросов
+    // перезапрос на возврат фокуса и появление сети; работает только с setupListeners в store
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+
     baseQuery: fetchBaseQuery({
-        // переменные окружения типизированы в src/vite-env.d.ts
-        // без этого файла тут был бы any и опечатка прошла бы молча
+        // переменные окружения типизированы в src/vite-env.d.ts, иначе тут был бы any
         baseUrl: import.meta.env.VITE_BASE_URL,
 
-        // API-KEY отправляется в каждом запросе
         headers: {
             'API-KEY': import.meta.env.VITE_API_KEY,
         },

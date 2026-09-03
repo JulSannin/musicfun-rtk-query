@@ -2,10 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
 import { baseApi } from '@/shared/api'
 
-// redux store всего приложения
-// RTK Query подключается двумя частями:
-// reducer хранит кеш запросов,
-// middleware следит за подписками, инвалидацией тегов и очисткой кеша
+// redux store: reducer хранит кеш запросов, middleware — подписки и инвалидацию тегов
 export const store = configureStore({
     reducer: {
         [baseApi.reducerPath]: baseApi.reducer,
@@ -14,7 +11,5 @@ export const store = configureStore({
         getDefaultMiddleware().concat(baseApi.middleware),
 })
 
-// подписывается на события браузера: возврат фокуса на вкладку и появление сети
-// сам по себе refetch не включает — опции задаются на месте вызова хука,
-// сейчас refetchOnFocus включен в PlayListsPage
+// поставляет события фокуса и сети; реагировать на них разрешают опции в baseApi
 setupListeners(store.dispatch)

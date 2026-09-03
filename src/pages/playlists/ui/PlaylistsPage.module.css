@@ -16,3 +16,8 @@
     border: 1px solid #ddd;
     border-radius: 8px;
 }
+
+/* гасим список на время запроса, не убирая его: верстка не прыгает */
+.fetching {
+    opacity: 0.5;
+}

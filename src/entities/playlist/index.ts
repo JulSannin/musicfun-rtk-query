@@ -13,4 +13,6 @@ export type {
     CreatePlaylistAttributes,
     UpdatePlaylistAttributes,
 } from './api/playlistsApi.types'
+export type { PlaylistFormValues } from './model/playlistForm'
 export { PlaylistInfo } from './ui/PlaylistInfo'
+export { PlaylistFormFields } from './ui/PlaylistFormFields'
