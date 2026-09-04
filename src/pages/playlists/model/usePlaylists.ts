@@ -14,7 +14,7 @@ export const usePlaylists = () => {
     const debouncedSearch = useDebounce(search);
 
     // каждый набор аргументов кешируется отдельно, поэтому возврат на страницу мгновенный
-    const { data, isError, isFetching } = useFetchPlaylistsQuery({
+    const { data, isError, isLoading, isFetching } = useFetchPlaylistsQuery({
         pageNumber: page,
         // trim и undefined, чтобы " abc", "abc" и "" не плодили лишние ключи кеша
         search: debouncedSearch.trim() || undefined,
@@ -44,6 +44,7 @@ export const usePlaylists = () => {
         // до первого ответа страниц не знаем, а если поиск ничего не нашел, их ноль — номера не отрисуются
         pagesCount: data?.meta.pagesCount ?? 1,
         isError,
+        isLoading,
         isFetching,
         page,
         pageSize,

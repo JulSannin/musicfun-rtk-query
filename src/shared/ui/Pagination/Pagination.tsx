@@ -1,7 +1,7 @@
 import { getPaginationPages } from './getPaginationPages';
 import s from './Pagination.module.css';
 
-const PAGE_SIZE_OPTIONS = [4, 8, 16, 32];
+const PAGE_SIZE_OPTIONS = [8, 16, 32, 40];
 
 type Props = {
     page: number;

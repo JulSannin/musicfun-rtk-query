@@ -1,5 +1,7 @@
 import { Header } from '@/widgets/header';
 import { Routing } from './routing/Routing';
+import { useGlobalLoading } from './model/useGlobalLoading';
+import { LinearProgress } from '@/shared/ui';
 import s from './App.module.css';
 import { ToastContainer } from 'react-toastify';
 // стили тостов не подключаются сами: без этого импорта
@@ -9,9 +11,12 @@ import 'react-toastify/dist/ReactToastify.css';
 // корневой компонент приложения
 // Header виден всегда, внутри layout меняются страницы по текущему роуту
 function App() {
+    const isGlobalLoading = useGlobalLoading();
+
     return (
         <>
             <Header />
+            {isGlobalLoading && <LinearProgress />}
             <div className={s.layout}>
                 <Routing />
             </div>

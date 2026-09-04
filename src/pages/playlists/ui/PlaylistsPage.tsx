@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CreatePlaylistForm } from '@/features/playlist-create';
 import { UpdatePlaylistForm } from '@/features/playlist-update';
 import { PlaylistCard } from '@/widgets/playlist-card';
-import { Pagination, SearchInput } from '@/shared/ui';
+import { LinearProgress, Pagination, SearchInput } from '@/shared/ui';
 import { usePlaylists } from '../model/usePlaylists';
 import s from './PlaylistsPage.module.css';
 
@@ -12,6 +12,7 @@ export const PlaylistsPage = () => {
         playlists,
         pagesCount,
         isError,
+        isLoading,
         isFetching,
         page,
         pageSize,
@@ -37,13 +38,16 @@ export const PlaylistsPage = () => {
             />
 
             {isError && <div>Failed to load playlists</div>}
-            {!playlists && !isError && <div>Loading...</div>}
+            {isLoading && <div>Loading...</div>}
 
             {/* с поиском можно ничего не найти, без подсказки страница выглядит сломанной */}
             {playlists?.length === 0 && <div>Nothing found</div>}
 
             {/* isFetching только гасит список: старые карточки остаются на экране */}
-            <div className={`${s.items} ${isFetching ? s.fetching : ''}`}>
+            <div
+                className={`${s.items} ${isFetching || isLoading ? s.fetching : ''}`}
+            >
+                {(isFetching || isLoading) && <LinearProgress />}
                 {playlists?.map((playlist) => {
                     const isEditing = playlistId === playlist.id;
                     return (

@@ -13,3 +13,6 @@ export const store = configureStore({
 
 // поставляет события фокуса и сети; реагировать на них разрешают опции в baseApi
 setupListeners(store.dispatch);
+
+// нужен для useGlobalLoading: без явного типа state в useSelector был бы unknown
+export type RootState = ReturnType<typeof store.getState>;
