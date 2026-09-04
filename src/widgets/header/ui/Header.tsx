@@ -1,6 +1,6 @@
-import { NavLink } from 'react-router'
-import { paths } from '@/shared/config'
-import s from './Header.module.css'
+import { NavLink } from 'react-router';
+import { paths } from '@/shared/config';
+import s from './Header.module.css';
 
 // пункты меню
 // вынесены в массив, чтобы разметку ссылки не дублировать на каждый пункт
@@ -11,7 +11,7 @@ const navItems = [
     { to: paths.Playlists, label: 'Playlists' },
     { to: paths.Tracks, label: 'Tracks' },
     { to: paths.Profile, label: 'Profile' },
-]
+];
 
 // шапка сайта, видна на всех страницах
 // рендерится в App над Routing, поэтому переживает смену роута
@@ -39,5 +39,5 @@ export const Header = () => {
                 </ul>
             </nav>
         </header>
-    )
-}
+    );
+};

@@ -1,64 +1,64 @@
-import defaultCover from './default-playlist-cover.png'
+import defaultCover from './default-playlist-cover.png';
 import {
     useDeletePlaylistCoverMutation,
     useUploadPlaylistCoverMutation,
-} from '@/entities/playlist'
-import type { ChangeEvent } from 'react'
-import type { Images } from '@/shared/api'
-import { ALLOWED_IMAGE_TYPES, validateImageFile } from '@/shared/lib'
-import { toast } from 'react-toastify'
-import s from './PlaylistCover.module.css'
+} from '@/entities/playlist';
+import type { ChangeEvent } from 'react';
+import type { Images } from '@/shared/api';
+import { ALLOWED_IMAGE_TYPES, validateImageFile } from '@/shared/lib';
+import { toast } from 'react-toastify';
+import s from './PlaylistCover.module.css';
 
 type Props = {
-    playlistId: string
+    playlistId: string;
     // весь плейлист компоненту не нужен, только его картинки
-    images: Images
-}
+    images: Images;
+};
 
 // обложка плейлиста вместе с загрузкой и удалением
 export const PlaylistCover = ({ playlistId, images }: Props) => {
     // сервер отдает несколько размеров одной картинки, берем оригинал
-    const originalCover = images.main?.find((img) => img.type === 'original')
+    const originalCover = images.main?.find((img) => img.type === 'original');
 
     // обложки может не быть, тогда показываем заглушку
-    const src = originalCover ? originalCover.url : defaultCover
+    const src = originalCover ? originalCover.url : defaultCover;
 
     // имена разводим: два isLoading в одной области видимости не уживутся
     const [uploadCover, { isLoading: isUploading }] =
-        useUploadPlaylistCoverMutation()
+        useUploadPlaylistCoverMutation();
     const [deleteCover, { isLoading: isDeleting }] =
-        useDeletePlaylistCoverMutation()
+        useDeletePlaylistCoverMutation();
 
     // пока идет любая операция с обложкой, вторую не начинаем
-    const isBusy = isUploading || isDeleting
+    const isBusy = isUploading || isDeleting;
 
     const uploadCoverHandler = (event: ChangeEvent<HTMLInputElement>) => {
         // files пуст, если пользователь закрыл диалог без выбора
-        const file = event.target.files?.length && event.target.files[0]
+        const file = event.target.files?.length && event.target.files[0];
 
-        if (!file) return
+        if (!file) return;
 
         // правила лежат в shared/lib: они одни на все картинки этого API
-        const error = validateImageFile(file)
+        const error = validateImageFile(file);
 
         if (error) {
-            toast.error(error)
-            return
+            toast.error(error);
+            return;
         }
 
         uploadCover({ playlistId, file })
             .unwrap()
-            .catch(() => toast.error('Failed to change the image'))
-    }
+            .catch(() => toast.error('Failed to change the image'));
+    };
 
     // confirm нативный намеренно: нужен ответ пользователя до запроса, тостом его не заменить
     const deleteCoverHandler = () => {
         if (confirm('Are you sure you want to delete the cover?')) {
             deleteCover({ playlistId })
                 .unwrap()
-                .catch(() => toast.error('Failed to delete the image'))
+                .catch(() => toast.error('Failed to delete the image'));
         }
-    }
+    };
 
     return (
         <>
@@ -79,5 +79,5 @@ export const PlaylistCover = ({ playlistId, images }: Props) => {
                 </button>
             )}
         </>
-    )
-}
+    );
+};

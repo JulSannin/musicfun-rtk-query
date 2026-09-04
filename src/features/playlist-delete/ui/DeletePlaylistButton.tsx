@@ -1,15 +1,15 @@
-import { useDeletePlaylistMutation } from '@/entities/playlist'
-import { toast } from 'react-toastify'
+import { useDeletePlaylistMutation } from '@/entities/playlist';
+import { toast } from 'react-toastify';
 
 type Props = {
     // мутации нужен только id, весь плейлист сюда не передаем
-    playlistId: string
-}
+    playlistId: string;
+};
 
 // кнопка удаления плейлиста вместе со своей мутацией
 // вынесена из карточки: карточка теперь только компонует, а не мутирует
 export const DeletePlaylistButton = ({ playlistId }: Props) => {
-    const [deletePlaylist] = useDeletePlaylistMutation()
+    const [deletePlaylist] = useDeletePlaylistMutation();
 
     // обработчик удаления плейлиста
     // удаляет плейлист после подтверждения пользователя
@@ -20,10 +20,10 @@ export const DeletePlaylistButton = ({ playlistId }: Props) => {
             deletePlaylist(playlistId)
                 .unwrap()
                 // ошибку показываем тостом, как и везде в проекте
-                .catch(() => toast.error('Failed to delete the playlist'))
+                .catch(() => toast.error('Failed to delete the playlist'));
         }
-    }
+    };
 
     // хендлер без аргументов, поэтому передаем ссылку, а не стрелку
-    return <button onClick={deletePlaylistHandler}>delete</button>
-}
+    return <button onClick={deletePlaylistHandler}>delete</button>;
+};

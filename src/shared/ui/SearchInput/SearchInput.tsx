@@ -1,8 +1,8 @@
 type Props = {
-    value: string
-    onChange: (value: string) => void
-    placeholder?: string
-}
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+};
 
 // поле поиска по списку: получает строку и отдает строку, про запросы не знает
 export const SearchInput = ({ value, onChange, placeholder }: Props) => {
@@ -14,5 +14,5 @@ export const SearchInput = ({ value, onChange, placeholder }: Props) => {
             placeholder={placeholder}
             onChange={(e) => onChange(e.currentTarget.value)}
         />
-    )
-}
+    );
+};

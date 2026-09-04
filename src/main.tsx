@@ -1,9 +1,9 @@
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router'
-import { Provider } from 'react-redux'
-import { store } from './app/model/store'
-import { App } from './app'
-import './app/styles/index.css'
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
+import { Provider } from 'react-redux';
+import { store } from './app/model/store';
+import { App } from './app';
+import './app/styles/index.css';
 
 // точка входа приложения
 // оборачиваем App в провайдеры:
@@ -16,4 +16,4 @@ createRoot(document.getElementById('root')!).render(
             <App />
         </Provider>
     </BrowserRouter>
-)
+);

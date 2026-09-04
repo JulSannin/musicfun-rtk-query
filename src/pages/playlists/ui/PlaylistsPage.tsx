@@ -1,10 +1,10 @@
-import { useState } from 'react'
-import { CreatePlaylistForm } from '@/features/playlist-create'
-import { UpdatePlaylistForm } from '@/features/playlist-update'
-import { PlaylistCard } from '@/widgets/playlist-card'
-import { Pagination, SearchInput } from '@/shared/ui'
-import { usePlaylists } from '../model/usePlaylists'
-import s from './PlaylistsPage.module.css'
+import { useState } from 'react';
+import { CreatePlaylistForm } from '@/features/playlist-create';
+import { UpdatePlaylistForm } from '@/features/playlist-update';
+import { PlaylistCard } from '@/widgets/playlist-card';
+import { Pagination, SearchInput } from '@/shared/ui';
+import { usePlaylists } from '../model/usePlaylists';
+import s from './PlaylistsPage.module.css';
 
 // страница со списком плейлистов: параметры и запрос в usePlaylists, здесь разметка и выбор редактируемого
 export const PlaylistsPage = () => {
@@ -19,10 +19,10 @@ export const PlaylistsPage = () => {
         onPageChange,
         onSearchChange,
         onPageSizeChange,
-    } = usePlaylists()
+    } = usePlaylists();
 
     // какой плейлист сейчас редактируем; форма открыта только одна
-    const [playlistId, setPlaylistId] = useState<string | null>(null)
+    const [playlistId, setPlaylistId] = useState<string | null>(null);
 
     return (
         <div className={s.container}>
@@ -45,7 +45,7 @@ export const PlaylistsPage = () => {
             {/* isFetching только гасит список: старые карточки остаются на экране */}
             <div className={`${s.items} ${isFetching ? s.fetching : ''}`}>
                 {playlists?.map((playlist) => {
-                    const isEditing = playlistId === playlist.id
+                    const isEditing = playlistId === playlist.id;
                     return (
                         // key от плейлиста, а не индекс: при удалении из середины индексы съезжают
                         <div className={s.item} key={playlist.id}>
@@ -62,7 +62,7 @@ export const PlaylistsPage = () => {
                                 />
                             )}
                         </div>
-                    )
+                    );
                 })}
             </div>
             <Pagination
@@ -73,5 +73,5 @@ export const PlaylistsPage = () => {
                 onPageSizeChange={onPageSizeChange}
             />
         </div>
-    )
-}
+    );
+};

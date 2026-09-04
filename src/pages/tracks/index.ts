@@ -1,1 +1,1 @@
-export { TracksPage } from './ui/TracksPage'
+export { TracksPage } from './ui/TracksPage';

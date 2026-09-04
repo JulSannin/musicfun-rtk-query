@@ -3,32 +3,32 @@
 
 // автор плейлиста или трека
 export type User = {
-    id: string
-    name: string
-}
+    id: string;
+    name: string;
+};
 
 // картинки сущности
 // main опциональный: у плейлиста без обложки этого поля в ответе не будет
 export type Images = {
-    main?: Cover[]
-}
+    main?: Cover[];
+};
 
 // тег в том виде, в каком его отдает сервер
 // на запись сервер ждет только массив id, без name
 export type TagRef = {
-    id: string
-    name: string
-}
+    id: string;
+    name: string;
+};
 
 // один размер обложки
 // на одну картинку сервер отдает несколько таких вариантов
 export type Cover = {
-    type: 'original' | 'medium' | 'thumbnail'
-    width: number
-    height: number
-    fileSize: number
-    url: string
-}
+    type: 'original' | 'medium' | 'thumbnail';
+    width: number;
+    height: number;
+    fileSize: number;
+    url: string;
+};
 
 // реакция текущего пользователя на плейлист или трек
 // сервер отдает числа, здесь даем им понятные имена
@@ -37,9 +37,9 @@ export const CurrentUserReaction = {
     Like: 1,
     Dislike: -1,
     None: 0,
-} as const
+} as const;
 
 // объект и тип названы одинаково намеренно:
 // объект дает значения в рантайме, тип дает типизацию
 export type CurrentUserReaction =
-    (typeof CurrentUserReaction)[keyof typeof CurrentUserReaction]
+    (typeof CurrentUserReaction)[keyof typeof CurrentUserReaction];

@@ -1,18 +1,18 @@
-import { useEffect } from 'react'
-import { useForm, type SubmitHandler } from 'react-hook-form'
+import { useEffect } from 'react';
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import {
     PlaylistFormFields,
     useFetchPlaylistQuery,
     useUpdatePlaylistMutation,
     type PlaylistFormValues,
-} from '@/entities/playlist'
-import { toast } from 'react-toastify'
+} from '@/entities/playlist';
+import { toast } from 'react-toastify';
 
 type Props = {
-    playlistId: string
+    playlistId: string;
     // форме нужно только "закрой меня", про состояние списка она не знает
-    onClose: () => void
-}
+    onClose: () => void;
+};
 
 // форма редактирования плейлиста, сама грузит его по id
 export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
@@ -21,30 +21,30 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
         { playlistId },
         // фон выключен точечно, хотя в baseApi включен: перезапрос затер бы набранное
         { refetchOnFocus: false, refetchOnReconnect: false }
-    )
+    );
 
     const {
         register,
         handleSubmit,
         reset,
         formState: { errors },
-    } = useForm<PlaylistFormValues>()
+    } = useForm<PlaylistFormValues>();
 
-    const [updatePlaylist] = useUpdatePlaylistMutation()
+    const [updatePlaylist] = useUpdatePlaylistMutation();
 
     // значения нельзя задать заранее: на первом рендере их еще нет, поэтому reset по ответу
     useEffect(() => {
-        if (!playlistResponse) return
+        if (!playlistResponse) return;
 
-        const { title, description } = playlistResponse.data.attributes
+        const { title, description } = playlistResponse.data.attributes;
 
         // в ответе description может быть null, а форма ждет строку
-        reset({ title, description: description ?? '' })
-    }, [playlistResponse, reset])
+        reset({ title, description: description ?? '' });
+    }, [playlistResponse, reset]);
 
     const onSubmit: SubmitHandler<PlaylistFormValues> = (values) => {
         // без данных плейлиста нечего слать: tagIds берутся именно оттуда
-        if (!playlistResponse) return
+        if (!playlistResponse) return;
 
         updatePlaylist({
             playlistId,
@@ -61,8 +61,8 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
             .unwrap()
             .then(onClose)
             // при ошибке форму не закрываем: человек должен поправить введенное
-            .catch(() => toast.error('Failed to update the playlist'))
-    }
+            .catch(() => toast.error('Failed to update the playlist'));
+    };
 
     // isLoading, а не isFetching: на фоновом перезапросе форма не должна исчезать с набранным
     return isLoading || !playlistResponse ? (
@@ -80,5 +80,5 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
                 cancel
             </button>
         </form>
-    )
-}
+    );
+};

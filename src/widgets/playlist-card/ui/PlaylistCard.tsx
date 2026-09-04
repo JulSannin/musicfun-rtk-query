@@ -1,16 +1,16 @@
-import type { PlaylistListItemResource } from '@/entities/playlist'
-import { PlaylistInfo } from '@/entities/playlist'
-import { PlaylistCover } from '@/features/playlist-cover'
-import { DeletePlaylistButton } from '@/features/playlist-delete'
+import type { PlaylistListItemResource } from '@/entities/playlist';
+import { PlaylistInfo } from '@/entities/playlist';
+import { PlaylistCover } from '@/features/playlist-cover';
+import { DeletePlaylistButton } from '@/features/playlist-delete';
 
 type Props = {
     // тип берем от списка, а не от карточки: данные приходят из fetchPlaylists
     // в списке нет description, и это ограничение источника, а не недосмотр
-    playlist: PlaylistListItemResource
+    playlist: PlaylistListItemResource;
     // onEdit ничего не обновляет, он переключает режим показа карточки
     // это состояние списка, поэтому живет наверху, а сюда приходит колбэком
-    onEdit: (id: string) => void
-}
+    onEdit: (id: string) => void;
+};
 
 // карточка одного плейлиста в списке
 // это виджет, а не энтити: он собирает вместе презентацию из entities
@@ -33,5 +33,5 @@ export const PlaylistCard = ({ playlist, onEdit }: Props) => {
             <button onClick={() => onEdit(playlist.id)}>update</button>
             <DeletePlaylistButton playlistId={playlist.id} />
         </>
-    )
-}
+    );
+};

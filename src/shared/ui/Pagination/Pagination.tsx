@@ -1,15 +1,15 @@
-import { getPaginationPages } from './getPaginationPages'
-import s from './Pagination.module.css'
+import { getPaginationPages } from './getPaginationPages';
+import s from './Pagination.module.css';
 
-const PAGE_SIZE_OPTIONS = [4, 8, 16, 32]
+const PAGE_SIZE_OPTIONS = [4, 8, 16, 32];
 
 type Props = {
-    page: number
-    pagesCount: number
-    onPageChange: (page: number) => void
-    pageSize: number
-    onPageSizeChange: (size: number) => void
-}
+    page: number;
+    pagesCount: number;
+    onPageChange: (page: number) => void;
+    pageSize: number;
+    onPageSizeChange: (size: number) => void;
+};
 
 // переключение страниц списка: принимает числа, отдает наверх новые
 export const Pagination = ({
@@ -19,7 +19,7 @@ export const Pagination = ({
     pageSize,
     onPageSizeChange,
 }: Props) => {
-    const pages = getPaginationPages(page, pagesCount)
+    const pages = getPaginationPages(page, pagesCount);
 
     return (
         <div className={s.container}>
@@ -70,5 +70,5 @@ export const Pagination = ({
                 per page
             </label>
         </div>
-    )
-}
+    );
+};

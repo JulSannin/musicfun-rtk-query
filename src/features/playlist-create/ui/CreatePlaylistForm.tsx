@@ -1,10 +1,10 @@
-import { useForm, type SubmitHandler } from 'react-hook-form'
+import { useForm, type SubmitHandler } from 'react-hook-form';
 import {
     PlaylistFormFields,
     useCreatePlaylistMutation,
     type PlaylistFormValues,
-} from '@/entities/playlist'
-import { toast } from 'react-toastify'
+} from '@/entities/playlist';
+import { toast } from 'react-toastify';
 
 // форма создания плейлиста; список обновится сам по инвалидации тега Playlists/LIST
 export const CreatePlaylistForm = () => {
@@ -13,9 +13,9 @@ export const CreatePlaylistForm = () => {
         handleSubmit,
         reset,
         formState: { errors },
-    } = useForm<PlaylistFormValues>()
+    } = useForm<PlaylistFormValues>();
 
-    const [createPlaylist] = useCreatePlaylistMutation()
+    const [createPlaylist] = useCreatePlaylistMutation();
 
     // сюда попадаем только после успешной валидации, ее делает handleSubmit
     const onSubmit: SubmitHandler<PlaylistFormValues> = (values) => {
@@ -28,8 +28,8 @@ export const CreatePlaylistForm = () => {
             // очищаем только после успеха, иначе при ошибке потеряем введенное
             .then(() => reset())
             // без catch у unwrap будет необработанный промис
-            .catch(() => toast.error('Failed to create the playlist'))
-    }
+            .catch(() => toast.error('Failed to create the playlist'));
+    };
 
     return (
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -41,5 +41,5 @@ export const CreatePlaylistForm = () => {
             {/* кнопка без type: внутри form по умолчанию это submit */}
             <button>create playlist</button>
         </form>
-    )
-}
+    );
+};

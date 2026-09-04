@@ -1,1 +1,1 @@
-export { UpdatePlaylistForm } from './ui/UpdatePlaylistForm'
+export { UpdatePlaylistForm } from './ui/UpdatePlaylistForm';

@@ -7,6 +7,6 @@ const paths = {
     Profile: '/profile',
     // "*" ловит любой адрес, которого нет в списке
     NotFound: '*',
-}
+};
 
-export { paths }
+export { paths };

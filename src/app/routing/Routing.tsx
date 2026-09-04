@@ -1,10 +1,10 @@
-import { Routes, Route } from 'react-router'
-import { MainPage } from '@/pages/main'
-import { PlaylistsPage } from '@/pages/playlists'
-import { TracksPage } from '@/pages/tracks'
-import { ProfilePage } from '@/pages/profile'
-import { PageNotFound } from '@/pages/not-found'
-import { paths } from '@/shared/config'
+import { Routes, Route } from 'react-router';
+import { MainPage } from '@/pages/main';
+import { PlaylistsPage } from '@/pages/playlists';
+import { TracksPage } from '@/pages/tracks';
+import { ProfilePage } from '@/pages/profile';
+import { PageNotFound } from '@/pages/not-found';
+import { paths } from '@/shared/config';
 
 // все роуты приложения
 // пути берем из объекта paths, чтобы не писать строки руками в разных местах
@@ -19,4 +19,4 @@ export const Routing = () => (
         <Route path={paths.Profile} element={<ProfilePage />} />
         <Route path={paths.NotFound} element={<PageNotFound />} />
     </Routes>
-)
+);

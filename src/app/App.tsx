@@ -1,10 +1,10 @@
-import { Header } from '@/widgets/header'
-import { Routing } from './routing/Routing'
-import s from './App.module.css'
-import { ToastContainer } from 'react-toastify'
+import { Header } from '@/widgets/header';
+import { Routing } from './routing/Routing';
+import s from './App.module.css';
+import { ToastContainer } from 'react-toastify';
 // стили тостов не подключаются сами: без этого импорта
 // разметка в DOM появится, но будет без позиционирования и фона
-import 'react-toastify/dist/ReactToastify.css'
+import 'react-toastify/dist/ReactToastify.css';
 
 // корневой компонент приложения
 // Header виден всегда, внутри layout меняются страницы по текущему роуту
@@ -20,7 +20,7 @@ function App() {
             {/* тема задается один раз тут, а не в каждом вызове toast */}
             <ToastContainer theme="colored" />
         </>
-    )
+    );
 }
 
-export { App }
+export { App };

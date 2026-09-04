@@ -1,4 +1,4 @@
-import type { Images } from '@/shared/api'
+import type { Images } from '@/shared/api';
 import type {
     CreatePlaylistAttributes,
     CreatePlaylistRequestPayload,
@@ -7,8 +7,8 @@ import type {
     GetPlaylistsOutput,
     UpdatePlaylistAttributes,
     UpdatePlaylistRequestPayload,
-} from './playlistsApi.types'
-import { baseApi } from '@/shared/api'
+} from './playlistsApi.types';
+import { baseApi } from '@/shared/api';
 
 // создаем RTK Query API
 
@@ -132,13 +132,13 @@ export const playlistsApi = baseApi
                 { playlistId: string; file: File }
             >({
                 query: ({ playlistId, file }) => {
-                    const formData = new FormData()
-                    formData.append('file', file)
+                    const formData = new FormData();
+                    formData.append('file', file);
                     return {
                         url: `playlists/${playlistId}/images/main`,
                         method: 'POST',
                         body: formData,
-                    }
+                    };
                 },
                 // обложка видна и в списке, и в карточке, поэтому сбрасываем оба тега
                 invalidatesTags: (_result, _error, { playlistId }) => [
@@ -163,7 +163,7 @@ export const playlistsApi = baseApi
                 ],
             }),
         }),
-    })
+    });
 
 // экспортируем готовые RTK Query хуки
 // имена генерируются автоматически: use + имя эндпоинта + Query или Mutation
@@ -175,4 +175,4 @@ export const {
     useUpdatePlaylistMutation,
     useUploadPlaylistCoverMutation,
     useDeletePlaylistCoverMutation,
-} = playlistsApi
+} = playlistsApi;

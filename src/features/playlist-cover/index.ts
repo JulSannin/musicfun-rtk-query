@@ -1,1 +1,1 @@
-export { PlaylistCover } from './ui/PlaylistCover'
+export { PlaylistCover } from './ui/PlaylistCover';

@@ -1,8 +1,8 @@
 type Props = {
-    title: string
+    title: string;
     // именно authorName, а не name: рядом с title просто "name" двусмысленно
-    authorName: string
-}
+    authorName: string;
+};
 
 // текстовая часть карточки
 // принимает готовые строки, а не весь плейлист:
@@ -14,5 +14,5 @@ export const PlaylistInfo = ({ title, authorName }: Props) => {
             <div>title: {title}</div>
             <div>name: {authorName}</div>
         </>
-    )
-}
+    );
+};
