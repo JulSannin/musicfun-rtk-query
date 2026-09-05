@@ -1,0 +1,17 @@
+.items {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.item {
+    width: 240px;
+    padding: 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+/* гасим список на время запроса, не убирая его: верстка не прыгает */
+.fetching {
+    opacity: 0.5;
+}

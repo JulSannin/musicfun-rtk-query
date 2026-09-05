@@ -13,7 +13,8 @@ type Props = {
 };
 
 // карточка одного плейлиста в списке
-// это виджет, а не энтити: он собирает вместе презентацию из entities
+// внутренняя часть виджета playlists-list, через его index.ts наружу не уходит
+// лежит в widgets, а не в entities: собирает вместе презентацию из entities
 // и действия из features, а энтити импортировать фичи не имеет права
 export const PlaylistCard = ({ playlist, onEdit }: Props) => {
     return (

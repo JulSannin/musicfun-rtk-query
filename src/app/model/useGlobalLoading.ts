@@ -4,7 +4,8 @@ import { QueryStatus } from '@reduxjs/toolkit/query';
 import type { RootState } from './store';
 
 // список эндпоинтов, у которых уже есть свой локальный индикатор загрузки
-// (PlaylistsPage приглушает список сама, TracksPage — LoadingTrigger при подгрузке страниц)
+// (PlaylistsList гасит список и рисует полосу сам — его показывают и PlaylistsPage,
+// и ProfilePage; TracksPage — LoadingTrigger при подгрузке страниц)
 // строки, а не playlistsApi.endpoints.fetchPlaylists.name: entities намеренно не отдают
 // наружу сам объект api, только хуки — см. CLAUDE.md
 const excludedEndpoints = ['fetchPlaylists', 'fetchTracks'];

@@ -1,20 +1,34 @@
-import { useGetMeQuery } from '@/entities/profile';
+import { Navigate } from 'react-router';
+import { CreatePlaylistForm } from '@/features/playlist-create';
+import { PlaylistsList } from '@/widgets/playlists-list';
+import { paths } from '@/shared/config';
+import { useProfile } from '../model/useProfile';
+import s from './ProfilePage.module.css';
 
-// страница профиля
-// пока заглушка: из содержимого только логин текущего пользователя
-// переходят сюда по клику на логин в шапке, поэтому неавторизованного
-// состояния тут не ждем — кнопки перехода у него нет
+// страница профиля: свои плейлисты и форма их создания
 export const ProfilePage = () => {
-    const { data, isLoading, isError } = useGetMeQuery();
+    const { login, isUnauthorized, playlists, isLoading, isError } =
+        useProfile();
 
-    // весь контент страницы это логин, поэтому состояния показываем вместо него,
-    // а не рядом с ним: пустой заголовок читается как сломанная страница
-    if (isLoading) return <h1>Loading...</h1>;
-    if (isError) return <h1>Failed to load profile</h1>;
+    // разлогиненного тут держать нечего: auth/me отвечает 401,
+    // и вместо своих плейлистов человек увидел бы пустую страницу
+    // replace обязателен: иначе /profile останется в истории и кнопка "назад"
+    // вернёт на него же, снова редиректнет — получится залипание
+    if (isUnauthorized) return <Navigate to={paths.Playlists} replace />;
 
     return (
-        <div>
-            <h1>{data?.login} page</h1>
-        </div>
+        <>
+            <h1>{login} page</h1>
+            <div className={s.container}>
+                {/* создавать плейлисты можно только у себя, поэтому форма здесь, а не на /playlists */}
+                <CreatePlaylistForm />
+                <PlaylistsList
+                    playlists={playlists}
+                    isLoading={isLoading}
+                    isError={isError}
+                    emptyText="You don't have any playlists yet"
+                />
+            </div>
+        </>
     );
 };
