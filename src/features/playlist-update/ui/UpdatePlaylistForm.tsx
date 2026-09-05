@@ -6,7 +6,6 @@ import {
     useUpdatePlaylistMutation,
     type PlaylistFormValues,
 } from '@/entities/playlist';
-import { toast } from 'react-toastify';
 
 type Props = {
     playlistId: string;
@@ -61,7 +60,7 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
             .unwrap()
             .then(onClose)
             // при ошибке форму не закрываем: человек должен поправить введенное
-            .catch(() => toast.error('Failed to update the playlist'));
+            .catch(() => {});
     };
 
     // isLoading, а не isFetching: на фоновом перезапросе форма не должна исчезать с набранным

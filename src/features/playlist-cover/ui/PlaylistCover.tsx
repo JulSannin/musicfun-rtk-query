@@ -5,8 +5,11 @@ import {
 } from '@/entities/playlist';
 import type { ChangeEvent } from 'react';
 import type { Images } from '@/shared/api';
-import { ALLOWED_IMAGE_TYPES, validateImageFile } from '@/shared/lib';
-import { toast } from 'react-toastify';
+import {
+    ALLOWED_IMAGE_TYPES,
+    errorToast,
+    validateImageFile,
+} from '@/shared/lib';
 import s from './PlaylistCover.module.css';
 
 type Props = {
@@ -42,13 +45,14 @@ export const PlaylistCover = ({ playlistId, images }: Props) => {
         const error = validateImageFile(file);
 
         if (error) {
-            toast.error(error);
+            // клиентская проверка, до сервера дело не доходит — handleErrors тут ни при чем
+            errorToast(error);
             return;
         }
 
         uploadCover({ playlistId, file })
             .unwrap()
-            .catch(() => toast.error('Failed to change the image'));
+            .catch(() => {});
     };
 
     // confirm нативный намеренно: нужен ответ пользователя до запроса, тостом его не заменить
@@ -56,7 +60,7 @@ export const PlaylistCover = ({ playlistId, images }: Props) => {
         if (confirm('Are you sure you want to delete the cover?')) {
             deleteCover({ playlistId })
                 .unwrap()
-                .catch(() => toast.error('Failed to delete the image'));
+                .catch(() => {});
         }
     };
 

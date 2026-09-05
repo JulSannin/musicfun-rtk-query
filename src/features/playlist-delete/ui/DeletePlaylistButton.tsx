@@ -1,5 +1,4 @@
 import { useDeletePlaylistMutation } from '@/entities/playlist';
-import { toast } from 'react-toastify';
 
 type Props = {
     // мутации нужен только id, весь плейлист сюда не передаем
@@ -20,7 +19,7 @@ export const DeletePlaylistButton = ({ playlistId }: Props) => {
             deletePlaylist(playlistId)
                 .unwrap()
                 // ошибку показываем тостом, как и везде в проекте
-                .catch(() => toast.error('Failed to delete the playlist'));
+                .catch(() => {});
         }
     };
 

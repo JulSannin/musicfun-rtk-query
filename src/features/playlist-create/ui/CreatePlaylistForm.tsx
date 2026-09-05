@@ -4,7 +4,6 @@ import {
     useCreatePlaylistMutation,
     type PlaylistFormValues,
 } from '@/entities/playlist';
-import { toast } from 'react-toastify';
 
 // форма создания плейлиста; список обновится сам по инвалидации тега Playlists/LIST
 export const CreatePlaylistForm = () => {
@@ -28,7 +27,7 @@ export const CreatePlaylistForm = () => {
             // очищаем только после успеха, иначе при ошибке потеряем введенное
             .then(() => reset())
             // без catch у unwrap будет необработанный промис
-            .catch(() => toast.error('Failed to create the playlist'));
+            .catch(() => {});
     };
 
     return (

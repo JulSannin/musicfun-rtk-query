@@ -115,8 +115,50 @@ export const playlistsApi = baseApi
                     } satisfies UpdatePlaylistRequestPayload,
                 }),
 
-                // правка меняет и список (там виден title), и саму карточку
-                // здесь аргумент объект, поэтому достаем playlistId деструктуризацией
+                async onQueryStarted(
+                    { playlistId, attributes },
+                    lifecycleApi
+                ) {
+                    // getState берем через lifecycleApi, а не деструктуризацией:
+                    // RTK Query типизирует его как метод, и eslint (unbound-method)
+                    // ругается на потерю this при отрыве от объекта
+                    const { dispatch, queryFulfilled } = lifecycleApi;
+
+                    // список плейлистов кешируется отдельно под каждый набор аргументов
+                    // (страница/поиск/сортировка) — патчим все закешированные варианты разом
+                    const cachedArgs =
+                        playlistsApi.util.selectCachedArgsForQuery(
+                            lifecycleApi.getState(),
+                            'fetchPlaylists'
+                        );
+
+                    const patches = cachedArgs.map((args) =>
+                        dispatch(
+                            playlistsApi.util.updateQueryData(
+                                'fetchPlaylists',
+                                args,
+                                (state) => {
+                                    const index = state.data.findIndex(
+                                        (playlist) => playlist.id === playlistId
+                                    );
+                                    // description и tags в списке не показываются вообще —
+                                    // их патчить незачем, даже если бы типы совпадали
+                                    if (index !== -1) {
+                                        state.data[index].attributes.title =
+                                            attributes.title;
+                                    }
+                                }
+                            )
+                        )
+                    );
+
+                    try {
+                        await queryFulfilled;
+                    } catch {
+                        patches.forEach((patch) => patch.undo());
+                    }
+                },
+
                 invalidatesTags: (_result, _error, { playlistId }) => [
                     { type: 'Playlists', id: 'LIST' },
                     { type: 'Playlist', id: playlistId },

@@ -5,7 +5,7 @@ import { useDebounce } from '@/shared/lib';
 // владеет параметрами списка плейлистов и самим запросом
 export const usePlaylists = () => {
     const [page, setPage] = useState<number>(1);
-    const [pageSize, setPageSize] = useState<number>(4);
+    const [pageSize, setPageSize] = useState<number>(8);
 
     // сырое значение инпута, нужно только для отрисовки поля
     const [search, setSearch] = useState<string>('');
