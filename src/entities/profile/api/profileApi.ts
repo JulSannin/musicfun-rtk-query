@@ -19,9 +19,11 @@ export const profileApi = baseApi
                 query: (payload) => ({
                     method: 'POST',
                     url: 'auth/login',
-                    // "1d" бэкенд отклоняет 400: accessTokenTTL не может превышать
-                    // время жизни refreshToken (а он короткий при rememberMe: false)
-                    body: { ...payload, accessTokenTTL: '3m' }, // на время отладки refresh-флоу
+                    // accessTokenTTL не может превышать время жизни refreshToken,
+                    // поэтому "1d" работает только в паре с rememberMe: true
+                    // (30 дней); при rememberMe: false refresh живёт 30 минут
+                    // и бэкенд отвечает 400
+                    body: { ...payload, accessTokenTTL: '1d' },
                 }),
                 async onQueryStarted(_args, { queryFulfilled }) {
                     // без try/catch неудачный логин (например, код уже использован

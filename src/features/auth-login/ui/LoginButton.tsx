@@ -20,7 +20,9 @@ export const LoginButton = () => {
             if (!code) return;
             // отписываемся сразу, иначе повторное сообщение из того же popup залогинит дважды
             window.removeEventListener('message', receiveMessage);
-            login({ code, redirectUri, rememberMe: false })
+            // rememberMe: true даёт refreshToken на 30 дней — без него
+            // accessTokenTTL: '1d' в profileApi упрётся в 30-минутный refresh
+            login({ code, redirectUri, rememberMe: true })
                 .unwrap()
                 .catch(() => {});
         };

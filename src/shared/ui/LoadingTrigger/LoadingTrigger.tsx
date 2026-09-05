@@ -9,11 +9,11 @@ type Props = {
 export const LoadingTrigger = ({ observerRef, isFetchingNextPage }: Props) => {
     return (
         <div ref={observerRef}>
-            {/* пустой div высотой 20px нужен, чтобы маячку было что показать: */}
-            {/* у элемента нулевой высоты IntersectionObserver не сработает */}
             {isFetchingNextPage ? (
                 <div>Loading more tracks...</div>
             ) : (
+                // распорка, а не пустой div: у элемента нулевой высоты
+                // IntersectionObserver не сработает, и подгрузка не запустится
                 <div style={{ height: '20px' }} />
             )}
         </div>

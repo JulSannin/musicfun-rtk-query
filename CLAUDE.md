@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev        # vite dev-сервер
 npm run build      # tsc -b (typecheck) + vite build — единственная проверка типов, отдельного typecheck-скрипта нет
-npm run lint       # eslint по src/**/*.{ts,tsx}, type-aware правила (tseslint recommendedTypeChecked)
+npm run lint       # eslint . (проверяются только src/**/*.{ts,tsx}), type-aware правила (tseslint recommendedTypeChecked)
 npm run steiger    # проверка архитектурных правил FSD по ./src
 npm run format     # prettier --write .
 npm run gen:api    # перегенерация api-generated/ из файла ./api-json (openapi-ts)
@@ -19,9 +19,9 @@ npm run gen:api    # перегенерация api-generated/ из файла .
 
 ## Переменные окружения
 
-`import.meta.env.VITE_BASE_URL`, `VITE_API_KEY`, `VITE_ACCESS_TOKEN` — типизированы в [src/vite-env.d.ts](src/vite-env.d.ts). В git лежит только `.env` с базовым урлом; ключ и токен — в `.env.local` (не в git). При добавлении новой переменной обязательно добавь её в `ImportMetaEnv`, иначе опечатка пройдёт молча.
+`import.meta.env.VITE_BASE_URL`, `VITE_API_KEY`, `VITE_DOMAIN_ADDRESS` — типизированы в [src/vite-env.d.ts](src/vite-env.d.ts). В git лежит `.env` с базовым урлом и адресом фронта; `VITE_API_KEY` — в `.env.local` (не в git). При добавлении новой переменной обязательно добавь её в `ImportMetaEnv`, иначе опечатка пройдёт молча.
 
-Логина в приложении нет: токен статический, `prepareHeaders` в [baseApi.ts](src/shared/api/baseApi.ts) вешает его на каждый запрос. `entities/profile` дёргает `auth/me` только чтобы показать, чей это токен.
+`VITE_BASE_URL` заканчивается слэшем — при ручной склейке урла (OAuth-редирект в [LoginButton.tsx](src/features/auth-login/ui/LoginButton.tsx)) второй слэш не добавлять, бэкенд на `//auth/...` не матчится и отдаёт 404 вместо редиректа.
 
 ## Архитектура
 
@@ -52,9 +52,26 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 - Ошибки мутаций: `.unwrap().catch(() => toast.error(...))` — без `catch` будет необработанный промис. `ToastContainer` стоит один раз в [App.tsx](src/app/App.tsx).
 - Оптимистичные обновления — через `onQueryStarted` (см. `updatePlaylist` в [playlistsApi.ts](src/entities/playlist/api/playlistsApi.ts)): `selectCachedArgsForQuery` находит все закешированные варианты списка (под разные страницы/поиск), `updateQueryData` патчит каждый, при неудаче патчи откатываются через `patch.undo()` в `catch` вокруг `queryFulfilled`.
 
+### Авторизация
+
+OAuth-логин с парой access/refresh токенов. Три файла в `shared/api`, каждый со своей ролью — не сваливать в один:
+
+- [authTokens.ts](src/shared/api/authTokens.ts) — токены в `localStorage` под ключами из `AUTH_KEYS`, плюс type guard `isTokens` для ответа рефреша. Redux-слайса для токенов нет специально: `baseQuery` читает их синхронно, вне React.
+- [baseQuery.ts](src/shared/api/baseQuery.ts) — «голый» `fetchBaseQuery`, вешает `API-KEY` и `Authorization`. На эндпоинте `login` заголовок с токеном намеренно не ставится: это обмен OAuth-кода на новую пару, и старый протухший `accessToken` из `localStorage` заставляет бэкенд отвечать на login 401.
+- [baseQueryWithReauth.ts](src/shared/api/baseQueryWithReauth.ts) — обёртка, которую и получает `baseApi`.
+
+Флоу логина: `LoginButton` открывает popup на `auth/oauth-redirect`, [OAuthCallbackPage](src/pages/oauth-callback/ui/OAuthCallbackPage.tsx) достаёт `code` из query и отдаёт его через `postMessage` в `window.opener`, `LoginButton` проверяет `event.origin`, сразу отписывается от `message` (иначе повторное сообщение логинит дважды) и зовёт `login`. Токены кладутся в `localStorage` в `onQueryStarted` мутации `login`, чистятся в `logout` — в `finally`, чтобы разлогин срабатывал даже при неудачном сетевом `auth/logout`.
+
+Рефреш в `baseQueryWithReauth` — стандартная схема RTK Query с `Mutex` из `async-mutex`: параллельные запросы ждут `mutex.waitForUnlock()`, рефреш делает только первый поймавший 401, остальные после разблокировки повторяют свой запрос. Тонкости, которые легко сломать:
+
+- Без `refreshToken` в `localStorage` на `auth/refresh` не ходим вообще — 401 просто уходит наверх.
+- При неудачном рефреше вызывается только `clearTokens()`, **без** `dispatch(resetApiState())`: в `Header` всегда подписан `useGetMeQuery`, `resetApiState` немедленно перезапускает активные запросы, `getMe` снова ловит 401, снова пробует рефреш — бесконечный цикл.
+- `handleErrors` зовётся здесь же, но только для `error.status !== 401` — 401 это внутренняя механика рефреша, тост по ней пользователю не нужен.
+- `accessTokenTTL: '1d'` в мутации `login` связан с `rememberMe: true` в [LoginButton.tsx](src/features/auth-login/ui/LoginButton.tsx): TTL access-токена не может превышать время жизни refresh-токена, а оно зависит именно от `rememberMe` (`true` — 30 дней, `false` — 30 минут). Менять одно без другого нельзя, бэкенд ответит 400.
+
 ### Обработка ошибок
 
-[handleErrors.ts](src/shared/api/handleErrors.ts) — единая точка показа ошибок сервера, вызывается из `baseQuery` в [baseApi.ts](src/shared/api/baseApi.ts) на каждый `result.error`, точечно перехватывать ошибки в слайсах не нужно. Формат тела ответа зависит от статуса (JSON:API `{ errors: [{ detail }] }` на 400/403, `{ error }` на 404, `{ message }` на 401/429), поэтому разбор идёт через `switch (error.status)`; 5xx показываются одинаковым текстом без содержимого ответа — там может быть стектрейс или внутренние пути. Тосты — через [toast.ts](src/shared/lib/toast.ts) (`errorToast`/`successToast`).
+[handleErrors.ts](src/shared/api/handleErrors.ts) — единая точка показа ошибок сервера, вызывается из [baseQueryWithReauth.ts](src/shared/api/baseQueryWithReauth.ts) на каждый `result.error` кроме 401, точечно перехватывать ошибки в слайсах не нужно. Формат тела ответа зависит от статуса (JSON:API `{ errors: [{ detail }] }` на 400/403, `{ error }` на 404, `{ message }` на 429), поэтому разбор идёт через `switch (error.status)`; 5xx показываются одинаковым текстом без содержимого ответа — там может быть стектрейс или внутренние пути. Сообщения про `refreshToken` в 400/403 глушатся — это ожидаемый протухший токен, а не ошибка пользователя. Тосты — через [toast.ts](src/shared/lib/toast.ts) (`errorToast`/`successToast`).
 
 ### Типы API
 
@@ -70,6 +87,8 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 
 Внутренние `*Attributes` списка намеренно не экспортируются: компонентам передают отдельные поля, а не весь объект.
 
+Исключение — [profileApi.types.ts](src/entities/profile/api/profileApi.types.ts): эндпоинты `auth/*` конверта JSON API не используют, тела плоские, поэтому `*Resource`/`*RequestPayload` там нет.
+
 ### Строгие настройки, ломающие сборку
 
 В [tsconfig.app.json](tsconfig.app.json) включено то, что регулярно валит `npm run build` неочевидным образом:
@@ -77,6 +96,8 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 - `verbatimModuleSyntax` — тип импортируется только через `import type`, обычный `import` для типа не соберётся.
 - `erasableSyntaxOnly` — `enum`, `namespace` и параметры-свойства запрещены. Поэтому перечисления делаются объектом с `as const` и одноимённым типом (см. `CurrentUserReaction` в [src/shared/api/types.ts](src/shared/api/types.ts)).
 - `noUnusedLocals` / `noUnusedParameters` — неиспользуемое имя это ошибка сборки. Отсюда `_result`, `_error` в `providesTags`/`invalidatesTags`: подчёркивание глушит правило.
+
+При этом `strict` в конфиге **не включён** (проверяется через `npx tsc -p tsconfig.app.json --showConfig`), то есть `strictNullChecks` выключен и `null`/`undefined` сборка не ловит. Не полагайся на компилятор в проверке на пустоту — код это делает руками (type guard'ы в [handleErrors.ts](src/shared/api/handleErrors.ts) и [authTokens.ts](src/shared/api/authTokens.ts), опциональная цепочка в компонентах).
 
 ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoidReturn: { attributes: false }` — async-обработчик прямо в JSX-атрибуте разрешён, а вот промис, переданный в проп с типом `() => void`, по-прежнему ошибка. Поэтому в [useInfiniteScroll.ts](src/shared/lib/hooks/useInfiniteScroll.ts) `fetchNextPage` объявлен как `() => unknown`.
 

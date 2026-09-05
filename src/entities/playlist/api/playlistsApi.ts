@@ -10,7 +10,8 @@ import type {
 } from './playlistsApi.types';
 import { baseApi } from '@/shared/api';
 
-// создаем RTK Query API
+// createApi на приложение один и лежит в shared/api/baseApi.ts,
+// а слайсы дописывают в него свои эндпоинты через injectEndpoints
 
 // здесь описаны все запросы и мутации для работы с плейлистами
 export const playlistsApi = baseApi

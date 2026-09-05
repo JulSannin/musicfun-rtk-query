@@ -18,7 +18,8 @@ export const DeletePlaylistButton = ({ playlistId }: Props) => {
         if (confirm('Are you sure you want to delete the playlist?')) {
             deletePlaylist(playlistId)
                 .unwrap()
-                // ошибку показываем тостом, как и везде в проекте
+                // catch пустой намеренно: тост уже показал handleErrors
+                // в baseQueryWithReauth, здесь только глушим промис
                 .catch(() => {});
         }
     };

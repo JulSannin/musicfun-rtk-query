@@ -7,7 +7,10 @@ export const OAuthCallbackPage = () => {
         const code = new URL(window.location.href).searchParams.get('code');
         // window.opener типизирован как any, поэтому явно приводим к Window
         const opener = window.opener as Window | null;
-        if (code && opener) opener.postMessage({ code }, '*');
+        // targetOrigin конкретный, а не '*': с '*' OAuth-код ушёл бы любому окну,
+        // которое нас открыло, кем бы оно ни было
+        if (code && opener)
+            opener.postMessage({ code }, import.meta.env.VITE_DOMAIN_ADDRESS);
         window.close();
     }, []);
 

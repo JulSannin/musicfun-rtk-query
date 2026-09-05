@@ -13,7 +13,8 @@ export const MainPage = () => {
             <h1>Main page</h1>
 
             {isLoading && <div>Loading...</div>}
-            {/* без этой ветки протухший токен выглядит как пустая строка логина */}
+            {/* auth/me отвечает 401 и когда не залогинены, и когда токен протух; */}
+            {/* без этой ветки и то и другое выглядело бы как пустая строка логина */}
             {isError && <div>Failed to load user</div>}
             {data && <div>login: {data.login}</div>}
         </div>

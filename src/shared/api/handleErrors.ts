@@ -70,8 +70,9 @@ export function handleErrors(error: FetchBaseQueryError) {
             }
             break;
 
-        // невалидный API-KEY — { message: string }
-        // 401 сюда не долетает: его перехватывает baseQueryWithReauth для refresh-флоу
+        // слишком много запросов — { message: string }
+        // раньше сюда же попадал 401 (невалидный API-KEY), теперь не долетает:
+        // его перехватывает baseQueryWithReauth для refresh-флоу
         case 429:
             if (isErrorWithProperty(error.data, 'message')) {
                 errorToast(error.data.message);

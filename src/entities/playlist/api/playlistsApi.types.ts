@@ -2,7 +2,7 @@ import type { CurrentUserReaction } from '@/shared/api';
 import type { Images, TagRef, User } from '@/shared/api';
 
 // типы API плейлистов, написаны руками
-// сверять их нужно с src/api-generated/types.gen.ts — это выгрузка из свагера
+// сверять их нужно с api-generated/types.gen.ts — это выгрузка из свагера
 // перегенерировать справочник: npm run gen:api
 
 // ==================== GET /playlists ====================
@@ -11,6 +11,8 @@ import type { Images, TagRef, User } from '@/shared/api';
 // все поля опциональные, уходят в query строку
 export type FetchPlaylistsArgs = {
     pageNumber?: number;
+    // свагер объявляет maximum: 20, но это устаревшее ограничение:
+    // по факту бэкенд принимает и 40 (см. PAGE_SIZE_OPTIONS в shared/ui/Pagination)
     pageSize?: number;
     search?: string;
     sortBy?: 'addedAt' | 'likesCount';
@@ -143,4 +145,4 @@ export type UpdatePlaylistAttributes = {
 };
 
 // ============ POST / DELETE /playlists/{playlistId}/images/main ============
-// своих типов тут нет: на вход File, на выход Images из common/types
+// своих типов тут нет: на вход File, на выход Images из @/shared/api
