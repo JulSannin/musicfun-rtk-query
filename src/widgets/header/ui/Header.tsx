@@ -1,21 +1,26 @@
 import { NavLink } from 'react-router';
 import { paths } from '@/shared/config';
+import { useGetMeQuery } from '@/entities/profile';
+import { LoginButton } from '@/features/auth-login';
+import { LogoutButton } from '@/features/auth-logout';
 import s from './Header.module.css';
 
 // пункты меню
 // вынесены в массив, чтобы разметку ссылки не дублировать на каждый пункт
 // лежат вне компонента: массив не зависит от пропсов и не должен
 // пересоздаваться на каждый рендер
+// Profile сюда не входит: на страницу профиля переходят по клику на логин
 const navItems = [
     { to: paths.Main, label: 'Main' },
     { to: paths.Playlists, label: 'Playlists' },
     { to: paths.Tracks, label: 'Tracks' },
-    { to: paths.Profile, label: 'Profile' },
 ];
 
 // шапка сайта, видна на всех страницах
 // рендерится в App над Routing, поэтому переживает смену роута
 export const Header = () => {
+    const { data } = useGetMeQuery();
+
     return (
         <header className={s.container}>
             <nav>
@@ -38,6 +43,15 @@ export const Header = () => {
                     ))}
                 </ul>
             </nav>
+
+            {data ? (
+                <div className={s.loginContainer}>
+                    <NavLink to={paths.Profile}>{data.login}</NavLink>
+                    <LogoutButton />
+                </div>
+            ) : (
+                <LoginButton />
+            )}
         </header>
     );
 };

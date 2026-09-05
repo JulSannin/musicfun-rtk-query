@@ -115,10 +115,7 @@ export const playlistsApi = baseApi
                     } satisfies UpdatePlaylistRequestPayload,
                 }),
 
-                async onQueryStarted(
-                    { playlistId, attributes },
-                    lifecycleApi
-                ) {
+                async onQueryStarted({ playlistId, attributes }, lifecycleApi) {
                     // getState берем через lifecycleApi, а не деструктуризацией:
                     // RTK Query типизирует его как метод, и eslint (unbound-method)
                     // ругается на потерю this при отрыве от объекта

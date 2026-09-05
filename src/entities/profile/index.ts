@@ -1,1 +1,5 @@
-export { useGetMeQuery } from './api/profileApi';
+export {
+    useGetMeQuery,
+    useLoginMutation,
+    useLogoutMutation,
+} from './api/profileApi';

@@ -51,7 +51,11 @@ export function handleErrors(error: FetchBaseQueryError) {
         case 400:
         case 403:
             if (isErrorWithDetailArray(error.data)) {
-                errorToast(trimToMaxLength(error.data.errors[0].detail));
+                const message = error.data.errors[0].detail;
+                // ошибка невалидного/просроченного refreshToken из baseQueryWithReauth —
+                // это ожидаемая ситуация (например разлогин), пользователю тост не нужен
+                if (message.includes('refreshToken')) break;
+                errorToast(trimToMaxLength(message));
             } else {
                 errorToast(JSON.stringify(error.data));
             }
@@ -66,8 +70,8 @@ export function handleErrors(error: FetchBaseQueryError) {
             }
             break;
 
-        // невалидный токен / невалидный API-KEY — { message: string }
-        case 401:
+        // невалидный API-KEY — { message: string }
+        // 401 сюда не долетает: его перехватывает baseQueryWithReauth для refresh-флоу
         case 429:
             if (isErrorWithProperty(error.data, 'message')) {
                 errorToast(error.data.message);

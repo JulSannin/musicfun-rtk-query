@@ -5,6 +5,7 @@ const paths = {
     Playlists: '/playlists',
     Tracks: '/tracks',
     Profile: '/profile',
+    OAuthCallback: '/oauth/callback',
     // "*" ловит любой адрес, которого нет в списке
     NotFound: '*',
 };

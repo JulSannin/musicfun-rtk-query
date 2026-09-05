@@ -50,6 +50,11 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 - В `baseApi` включены `refetchOnFocus`/`refetchOnReconnect`. Их точечно выключают там, где фоновый перезапрос вреден: формы редактирования (затрёт набранное) и `infiniteQuery` (перезапросит все загруженные страницы разом).
 - В формах редактирования используется `currentData`, а не `data`: `data` держит ответ по прошлому аргументу и покажет чужую сущность.
 - Ошибки мутаций: `.unwrap().catch(() => toast.error(...))` — без `catch` будет необработанный промис. `ToastContainer` стоит один раз в [App.tsx](src/app/App.tsx).
+- Оптимистичные обновления — через `onQueryStarted` (см. `updatePlaylist` в [playlistsApi.ts](src/entities/playlist/api/playlistsApi.ts)): `selectCachedArgsForQuery` находит все закешированные варианты списка (под разные страницы/поиск), `updateQueryData` патчит каждый, при неудаче патчи откатываются через `patch.undo()` в `catch` вокруг `queryFulfilled`.
+
+### Обработка ошибок
+
+[handleErrors.ts](src/shared/api/handleErrors.ts) — единая точка показа ошибок сервера, вызывается из `baseQuery` в [baseApi.ts](src/shared/api/baseApi.ts) на каждый `result.error`, точечно перехватывать ошибки в слайсах не нужно. Формат тела ответа зависит от статуса (JSON:API `{ errors: [{ detail }] }` на 400/403, `{ error }` на 404, `{ message }` на 401/429), поэтому разбор идёт через `switch (error.status)`; 5xx показываются одинаковым текстом без содержимого ответа — там может быть стектрейс или внутренние пути. Тосты — через [toast.ts](src/shared/lib/toast.ts) (`errorToast`/`successToast`).
 
 ### Типы API
 
@@ -80,6 +85,10 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 Параметры списка и сам запрос живут в хуке `pages/<page>/model/use<Page>.ts`, компонент страницы отвечает только за разметку (см. [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts), [useTracks.ts](src/pages/tracks/model/useTracks.ts)). Redux-слайсов для UI-состояния нет — только локальный `useState` и кеш RTK Query.
 
 Две разные модели пагинации живут рядом намеренно: плейлисты листаются номерами страниц (`query` + `Pagination`), треки — курсором через `build.infiniteQuery` (список пополняется, offset-пагинация давала бы дубли).
+
+### Индикаторы загрузки
+
+Два уровня: локальный (`isLoading`/`isFetching` конкретного хука прямо в компоненте, приглушает список или показывает `LoadingTrigger` при подгрузке страниц) и глобальный — [useGlobalLoading.ts](src/app/model/useGlobalLoading.ts) проходит по `state.baseApi.queries`/`mutations` и показывает `LinearProgress` в [App.tsx](src/app/App.tsx), если есть активный запрос. Эндпоинты со своим локальным индикатором перечислены в `excludedEndpoints` (по строковому имени, а не по `api.endpoints.x.name` — entities не отдают наружу сам объект api, см. выше) и глушат общий бар, кроме самого первого запроса, пока показать loading ещё нечем.
 
 ### Пропсы компонентов
 
