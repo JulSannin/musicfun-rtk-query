@@ -45,6 +45,9 @@ export const PlaylistCard = ({
             <PlaylistInfo
                 title={playlist.attributes.title}
                 authorName={playlist.attributes.user.name}
+                tracksCount={playlist.attributes.tracksCount}
+                duration={playlist.attributes.duration}
+                tagNames={playlist.attributes.tags.map((tag) => tag.name)}
             />
 
             {/* счётчики видит любой, кнопки активны только у залогиненного */}

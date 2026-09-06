@@ -7,7 +7,7 @@ import s from './TracksPage.module.css';
 // запрос и наблюдатель живут в useTracks, здесь только разметка
 export const TracksPage = () => {
     const {
-        tracks,
+        items,
         isLoading,
         isError,
         isFetchingNextPage,
@@ -23,9 +23,13 @@ export const TracksPage = () => {
             {isLoading && <div>Loading...</div>}
 
             <div className={s.list}>
-                {tracks.map((track) => (
+                {items.map(({ track, artistNames }) => (
                     // key от трека, а не индекс: список растет, индексы поехали бы
-                    <TrackItem key={track.id} track={track} />
+                    <TrackItem
+                        key={track.id}
+                        track={track}
+                        artistNames={artistNames}
+                    />
                 ))}
             </div>
 
@@ -38,7 +42,7 @@ export const TracksPage = () => {
             )}
 
             {/* сообщение только когда что-то уже загружено: на пустом списке оно сбивает с толку */}
-            {!hasNextPage && tracks.length > 0 && <p>Nothing more to load</p>}
+            {!hasNextPage && items.length > 0 && <p>Nothing more to load</p>}
         </div>
     );
 };
