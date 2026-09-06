@@ -6,6 +6,7 @@ export {
     useUpdatePlaylistMutation,
     useUploadPlaylistCoverMutation,
     useDeletePlaylistCoverMutation,
+    useSetPlaylistReactionMutation,
 } from './api/playlistsApi';
 export type {
     PlaylistListItemResource,

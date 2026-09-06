@@ -1,4 +1,11 @@
-import type { Images } from '@/shared/api';
+import type { Images, ReactionCounters, ReactionOutput } from '@/shared/api';
+import {
+    applyReaction,
+    baseApi,
+    CurrentUserReaction,
+    syncReaction,
+} from '@/shared/api';
+
 import type {
     CreatePlaylistAttributes,
     CreatePlaylistRequestPayload,
@@ -8,7 +15,6 @@ import type {
     UpdatePlaylistAttributes,
     UpdatePlaylistRequestPayload,
 } from './playlistsApi.types';
-import { baseApi } from '@/shared/api';
 
 // createApi на приложение один и лежит в shared/api/baseApi.ts,
 // а слайсы дописывают в него свои эндпоинты через injectEndpoints
@@ -202,6 +208,95 @@ export const playlistsApi = baseApi
                     { type: 'Playlist', id: playlistId },
                 ],
             }),
+
+            // POST / DELETE запрос
+            // ставит или снимает реакцию на плейлист
+            // три эндпоинта спрятаны в одну мутацию: для UI это одно действие —
+            // переключение состояния кнопки, и оптимистичное обновление у них общее
+            setPlaylistReaction: build.mutation<
+                ReactionOutput,
+                { playlistId: string; reaction: CurrentUserReaction }
+            >({
+                query: ({ playlistId, reaction }) => {
+                    // снятие реакции это отдельный DELETE, а не POST с нулём
+                    if (reaction === CurrentUserReaction.None) {
+                        return {
+                            method: 'DELETE',
+                            url: `playlists/${playlistId}/reactions`,
+                        };
+                    }
+
+                    const action =
+                        reaction === CurrentUserReaction.Like
+                            ? 'likes'
+                            : 'dislikes';
+
+                    return {
+                        method: 'POST',
+                        url: `playlists/${playlistId}/${action}`,
+                    };
+                },
+
+                async onQueryStarted({ playlistId, reaction }, lifecycleApi) {
+                    const { dispatch, queryFulfilled } = lifecycleApi;
+
+                    const cachedArgs =
+                        playlistsApi.util.selectCachedArgsForQuery(
+                            lifecycleApi.getState(),
+                            'fetchPlaylists'
+                        );
+
+                    // один плейлист лежит сразу в нескольких местах кеша: в каждом
+                    // варианте списка и в карточке — правку применяем везде одинаково
+                    const patchEverywhere = (
+                        mutate: (attributes: ReactionCounters) => void
+                    ) => [
+                        ...cachedArgs.map((args) =>
+                            dispatch(
+                                playlistsApi.util.updateQueryData(
+                                    'fetchPlaylists',
+                                    args,
+                                    (state) => {
+                                        const playlist = state.data.find(
+                                            (item) => item.id === playlistId
+                                        );
+                                        if (playlist)
+                                            mutate(playlist.attributes);
+                                    }
+                                )
+                            )
+                        ),
+                        // если карточка не открыта, записи в кеше нет и патч просто
+                        // ничего не делает — проверять наличие отдельно не нужно
+                        dispatch(
+                            playlistsApi.util.updateQueryData(
+                                'fetchPlaylist',
+                                { playlistId },
+                                (state) => mutate(state.data.attributes)
+                            )
+                        ),
+                    ];
+
+                    // счётчик двигаем сразу, не дожидаясь ответа
+                    const patches = patchEverywhere((attributes) =>
+                        applyReaction(attributes, reaction)
+                    );
+
+                    try {
+                        // наши +1/−1 это догадка: пока страница висела открытой,
+                        // лайкнуть мог кто угодно ещё — заменяем числами сервера
+                        const { data } = await queryFulfilled;
+                        patchEverywhere((attributes) =>
+                            syncReaction(attributes, data)
+                        );
+                    } catch {
+                        patches.forEach((patch) => patch.undo());
+                    }
+                },
+
+                // invalidatesTags здесь намеренно нет: сброс тега Playlists/LIST
+                // перезапрашивал бы всю страницу списка на каждый клик по кнопке
+            }),
         }),
     });
 
@@ -215,4 +310,5 @@ export const {
     useUpdatePlaylistMutation,
     useUploadPlaylistCoverMutation,
     useDeletePlaylistCoverMutation,
+    useSetPlaylistReactionMutation,
 } = playlistsApi;

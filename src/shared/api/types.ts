@@ -39,6 +39,16 @@ export const CurrentUserReaction = {
     None: 0,
 } as const;
 
+// ответ эндпоинтов реакции: сервер сам пересчитывает счётчики и отдаёт итог
+// поля названы не как в атрибутах сущности (likes против likesCount) —
+// перекладывать значения придётся руками
+export type ReactionOutput = {
+    objectId: string;
+    value: CurrentUserReaction;
+    likes: number;
+    dislikes: number;
+};
+
 // объект и тип названы одинаково намеренно:
 // объект дает значения в рантайме, тип дает типизацию
 export type CurrentUserReaction =
