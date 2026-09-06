@@ -1,5 +1,5 @@
 import { PlaylistsList } from '@/widgets/playlists-list';
-import { Pagination, SearchInput } from '@/shared/ui';
+import { Pagination, SearchInput, Select } from '@/shared/ui';
 import { usePlaylists } from '../model/usePlaylists';
 import s from './PlaylistsPage.module.css';
 
@@ -15,9 +15,16 @@ export const PlaylistsPage = () => {
         page,
         pageSize,
         search,
+        sortBy,
+        sortDirection,
+        onlyLikedByMe,
+        canFilterByLikes,
         onPageChange,
         onSearchChange,
         onPageSizeChange,
+        onSortByChange,
+        onSortDirectionChange,
+        onOnlyLikedByMeChange,
     } = usePlaylists();
 
     return (
@@ -30,6 +37,41 @@ export const PlaylistsPage = () => {
                 onChange={onSearchChange}
                 placeholder="search by title"
             />
+
+            <div className={s.filters}>
+                <Select
+                    label="Sort by"
+                    value={sortBy}
+                    options={[
+                        { value: 'addedAt', label: 'date added' },
+                        { value: 'likesCount', label: 'likes' },
+                    ]}
+                    onChange={onSortByChange}
+                />
+                <Select
+                    label="Direction"
+                    value={sortDirection}
+                    options={[
+                        { value: 'desc', label: 'newest first' },
+                        { value: 'asc', label: 'oldest first' },
+                    ]}
+                    onChange={onSortDirectionChange}
+                />
+
+                {/* гостю чекбокс не показываем: фильтр требует авторизации */}
+                {canFilterByLikes && (
+                    <label>
+                        <input
+                            type="checkbox"
+                            checked={onlyLikedByMe}
+                            onChange={(e) =>
+                                onOnlyLikedByMeChange(e.currentTarget.checked)
+                            }
+                        />
+                        only liked by me
+                    </label>
+                )}
+            </div>
 
             <PlaylistsList
                 playlists={playlists}

@@ -1,11 +1,16 @@
 import type { CurrentUserReaction } from '@/shared/api';
-import type { Images, TagRef, User } from '@/shared/api';
+import type { Images, SortDirection, TagRef, User } from '@/shared/api';
 
 // типы API плейлистов, написаны руками
 // сверять их нужно с api-generated/types.gen.ts — это выгрузка из свагера
 // перегенерировать справочник: npm run gen:api
 
 // ==================== GET /playlists ====================
+
+// поле сортировки списка плейлистов
+// вынесено в отдельный тип: его держит у себя состояние страницы,
+// а не только аргументы запроса
+export type PlaylistSortBy = 'addedAt' | 'likesCount';
 
 // тип аргументов GET запроса на получение списка плейлистов
 // все поля опциональные, уходят в query строку
@@ -15,8 +20,8 @@ export type FetchPlaylistsArgs = {
     // по факту бэкенд принимает и 40 (см. PAGE_SIZE_OPTIONS в shared/ui/Pagination)
     pageSize?: number;
     search?: string;
-    sortBy?: 'addedAt' | 'likesCount';
-    sortDirection?: 'asc' | 'desc';
+    sortBy?: PlaylistSortBy;
+    sortDirection?: SortDirection;
     // именно массив строк, а не объектов: сервер ждет id тегов
     tagsIds?: string[];
     userId?: string;

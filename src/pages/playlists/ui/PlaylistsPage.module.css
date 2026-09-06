@@ -3,3 +3,9 @@
     flex-direction: column;
     gap: 30px;
 }
+
+.filters {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}

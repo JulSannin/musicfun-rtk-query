@@ -10,6 +10,7 @@ export {
 } from './api/playlistsApi';
 export type {
     PlaylistListItemResource,
+    PlaylistSortBy,
     JsonApiMetaWithPaging,
     CreatePlaylistAttributes,
     UpdatePlaylistAttributes,
