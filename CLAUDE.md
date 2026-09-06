@@ -35,7 +35,7 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 - Исключение: в `shared` правило `public-api` отключено, но по факту действуют бочки на уровне сегментов — `@/shared/api`, `@/shared/lib`, `@/shared/ui`, `@/shared/config`.
 - Сегменты внутри слайса: `api/` (эндпоинты + типы), `model/` (состояние, хуки, константы), `ui/` (компоненты).
 - Пример разделения: [PlaylistCard](src/widgets/playlists-list/ui/PlaylistCard.tsx) — виджет, потому что склеивает презентацию из `entities` с действиями из `features`; сама энтити импортировать фичу не может.
-- Импорт между слайсами одного слоя запрещён (`fsd/forbidden-imports`), и это уже дважды повлияло на раскладку: карточка живёт внутри виджета [playlists-list](src/widgets/playlists-list/) (список её рендерит), а не отдельным слайсом `widgets/playlist-card`; общее для двух фич уезжает слоем ниже — поля формы в [PlaylistFormFields](src/entities/playlist/ui/PlaylistFormFields.tsx) вместе с лимитами из [playlistForm.ts](src/entities/playlist/model/playlistForm.ts) делят `playlist-create` и `playlist-update`.
+- Импорт между слайсами одного слоя запрещён (`fsd/forbidden-imports`), и это уже трижды повлияло на раскладку: карточка живёт внутри виджета [playlists-list](src/widgets/playlists-list/) (список её рендерит), а не отдельным слайсом `widgets/playlist-card`; общее для двух фич уезжает слоем ниже — поля формы в [PlaylistFormFields](src/entities/playlist/ui/PlaylistFormFields.tsx) вместе с лимитами из [playlistForm.ts](src/entities/playlist/model/playlistForm.ts) делят `playlist-create` и `playlist-update`; а [TagPicker](src/entities/tag/ui/TagPicker.tsx) не встроен внутрь `PlaylistFormFields`, хотя логически им там место, — `entities/playlist` не имеет права импортировать `entities/tag`. Композиция уезжает наверх, к тому, кто видит оба слайса: пикер ставится рядом с полями формы в [UpdatePlaylistForm](src/features/playlist-update/ui/UpdatePlaylistForm.tsx) и на [PlaylistsPage](src/pages/playlists/ui/PlaylistsPage.tsx). Это общее правило: если двум энтити нужно встретиться, они встречаются слоем выше, а не импортируют друг друга.
 - В `index.ts` энтити наружу уходят RTK Query хуки (сам объект `playlistsApi`/`tracksApi` — нет), узкий набор типов и UI-компоненты. Тип отдаём только тот, который реально нужен снаружи.
 - Правила `insignificant-slice` и `repetitive-naming` в steiger выключены: слайс из одного файла (например [features/playlist-delete](src/features/playlist-delete/)) — нормально, ругаться не будет.
 
@@ -49,6 +49,8 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 - Списки помечаются `{ type: 'X', id: 'LIST' }`, отдельные сущности — своим id, чтобы правка одной не сбрасывала кеш остальных.
 - Конверт JSON API (`{ data: { type, attributes } }`) собирается внутри `query` и проверяется через `satisfies` — `body` в RTK Query имеет тип `any`, без `satisfies` ошибку никто не поймает. Наружу мутация принимает только `attributes`.
 - Файлы (`uploadPlaylistCover`) уходят как `FormData`, собранная внутри `query`. `Content-Type` руками не ставить — браузер сам допишет `boundary`, а заданный вручную заголовок его потеряет и бэкенд не разберёт тело. Имя поля берётся из свагера и у разных обложек разное: `file` у `POST /playlists/{id}/images/main`, но `cover` у `POST /playlists/tracks/{id}/cover` — копипаст мутации на треки молча не сработает.
+- Массивы в query-параметрах уходят через свой `paramsSerializer` в [baseQuery.ts](src/shared/api/baseQuery.ts). Бэкенд ждёт повторяющийся ключ (`tagsIds=a&tagsIds=b`), а `new URLSearchParams` склеил бы массив запятой в `tagsIds=a%2Cb` — сервер примет это за один несуществующий id и молча вернёт пустой список; ни типы, ни линтер такого не видят, проверяется только вкладкой Network. Свой сериализатор **отключает** встроенный `stripUndefined`, поэтому пустые значения он выбрасывает сам, и в урл кладёт только примитивы: объект превратился бы в `[object Object]`. Тот же механизм понадобится для `artistsIds`.
+- Ответ можно распаковать в `transformResponse`, если конверт наружу не нужен: `searchTags` в [tagsApi.ts](src/entities/tag/api/tagsApi.ts) отдаёт готовый `TagRef[]` вместо `{ data: [{ id, attributes: { name } }] }` — выбранные и найденные теги оказываются одного типа с тем, что лежит в атрибутах плейлиста. Это исключение из правила «`Get*Output` — ответ целиком»: оно про типы эндпоинта, а не про то, что обязано доехать до компонента.
 - В `baseApi` включены `refetchOnFocus`/`refetchOnReconnect`. Их точечно выключают там, где фоновый перезапрос вреден: формы редактирования (затрёт набранное) и `infiniteQuery` (перезапросит все загруженные страницы разом).
 - В формах редактирования используется `currentData`, а не `data`: `data` держит ответ по прошлому аргументу и покажет чужую сущность.
 - Ошибки мутаций: `.unwrap().catch(() => toast.error(...))` — без `catch` будет необработанный промис. `ToastContainer` стоит один раз в [App.tsx](src/app/App.tsx).
@@ -118,6 +120,11 @@ OAuth-логин с парой access/refresh токенов. Три файла 
 
 ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoidReturn: { attributes: false }` — async-обработчик прямо в JSX-атрибуте разрешён, а вот промис, переданный в проп с типом `() => void`, по-прежнему ошибка. Поэтому в [useInfiniteScroll.ts](src/shared/lib/hooks/useInfiniteScroll.ts) `fetchNextPage` объявлен как `() => unknown`.
 
+Ещё два правила линтера валят сборку не там, где ждёшь:
+
+- `react-hooks/set-state-in-effect` — сеттер `useState` внутри `useEffect` это ошибка, а не предупреждение. Чинится не отключением правила, а выводом значения на рендере: в [UpdatePlaylistForm](src/features/playlist-update/ui/UpdatePlaylistForm.tsx) выбранные теги хранятся как `TagRef[] | null`, где `null` значит «пользователь не трогал», и показываются как `editedTags ?? playlistResponse?.data.attributes.tags ?? []`. Эффект остался только под `reset` формы — он не сеттер. Это тот же приём, что и починка номера страницы в [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts).
+- `@typescript-eslint/no-base-to-string` — `String(x)` над `unknown` или объектом. Всплывает в утилитах, принимающих чужие данные (см. `paramsSerializer`); лечится сужением до примитивов, а не приведением типа.
+
 ### Состояние страниц
 
 Параметры списка и сам запрос живут в хуке `pages/<page>/model/use<Page>.ts`, компонент страницы отвечает только за разметку (см. [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts), [useTracks.ts](src/pages/tracks/model/useTracks.ts)). Redux-слайсов для UI-состояния нет — только локальный `useState` и кеш RTK Query.
@@ -131,9 +138,10 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 - Любая смена параметров списка (поиск, `pageSize`, `sortBy`, `sortDirection`, `onlyLikedByMe`) сбрасывает `page` в 1 — состав списка и количество страниц меняются, а номер страницы остался бы от прошлой выдачи. Поэтому у каждого сеттера свой хендлер, а не голый `setState` наружу.
 - Фильтр `onlyLikedByMe` требует авторизации: `canFilterByLikes` не только прячет чекбокс, но и гасит уже включённый фильтр при разлогине (`likedFilter = canFilterByLikes && onlyLikedByMe`) — иначе следующий запрос ушёл бы в 401.
 
-Два приёма из этих хуков стоит повторять:
+Три приёма из этих хуков стоит повторять:
 
 - Зависимый запрос уходит со `skip`, пока не приехал аргумент, а `isLoading` наружу отдаётся склеенным ([useProfile.ts](src/pages/profile/model/useProfile.ts): `isMeLoading || isPlaylistsLoading`). Без `skip` первый запрос ушёл бы с `userId: undefined` и притащил чужие плейлисты; без склейки `isLoading` во время `skip` равен `false` и страница успела бы моргнуть пустым списком.
+- `skip` нужен и там, где аргумент есть, но пустой: у `searchTags` параметр `search` обязателен по спеке, и с пустой строкой сервер ответит 400 — [TagPicker](src/entities/tag/ui/TagPicker.tsx) не отправляет запрос, пока в поле ничего не набрано. Эндпоинта «отдай все теги» в API нет вообще, только поиск по подстроке.
 - Номер страницы, съехавший за `pagesCount` после удаления, чинится прямо на рендере (`setPage` в теле [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts)), а не в `useEffect`: React выбрасывает такой проход до коммита, лишнего запроса за несуществующую страницу не будет.
 
 ### Списки и владение

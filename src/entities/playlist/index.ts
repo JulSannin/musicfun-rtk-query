@@ -16,6 +16,7 @@ export type {
     UpdatePlaylistAttributes,
 } from './api/playlistsApi.types';
 export type { PlaylistFormValues } from './model/playlistForm';
+export { PLAYLIST_TAGS_MAX } from './model/playlistForm';
 export { PlaylistInfo } from './ui/PlaylistInfo';
 export { PlaylistFormFields } from './ui/PlaylistFormFields';
 export { PlaylistCover } from './ui/PlaylistCover';

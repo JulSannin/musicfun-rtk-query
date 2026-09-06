@@ -1,4 +1,5 @@
 import { PlaylistsList } from '@/widgets/playlists-list';
+import { TagPicker } from '@/entities/tag';
 import { Pagination, SearchInput, Select } from '@/shared/ui';
 import { usePlaylists } from '../model/usePlaylists';
 import s from './PlaylistsPage.module.css';
@@ -19,12 +20,14 @@ export const PlaylistsPage = () => {
         sortDirection,
         onlyLikedByMe,
         canFilterByLikes,
+        tags,
         onPageChange,
         onSearchChange,
         onPageSizeChange,
         onSortByChange,
         onSortDirectionChange,
         onOnlyLikedByMeChange,
+        onTagsChange,
     } = usePlaylists();
 
     return (
@@ -57,6 +60,11 @@ export const PlaylistsPage = () => {
                     ]}
                     onChange={onSortDirectionChange}
                 />
+
+                {/* без max: сколько тегов сузят выборку, решает пользователь — */}
+                {/* лимит в 5 есть только у самого плейлиста, не у фильтра. */}
+                {/* прятать от гостя не нужно: tags/search живёт на API-KEY, без токена */}
+                <TagPicker value={tags} onChange={onTagsChange} />
 
                 {/* гостю чекбокс не показываем: фильтр требует авторизации */}
                 {canFilterByLikes && (

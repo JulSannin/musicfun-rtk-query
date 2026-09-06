@@ -4,7 +4,7 @@ import {
     type PlaylistSortBy,
 } from '@/entities/playlist';
 import { useGetMeQuery } from '@/entities/profile';
-import type { SortDirection } from '@/shared/api';
+import type { SortDirection, TagRef } from '@/shared/api';
 import { useDebounce } from '@/shared/lib';
 
 // владеет параметрами списка плейлистов и самим запросом
@@ -14,6 +14,8 @@ export const usePlaylists = () => {
 
     // сырое значение инпута, нужно только для отрисовки поля
     const [search, setSearch] = useState<string>('');
+
+    const [tags, setTags] = useState<TagRef[]>([]);
 
     // значение для запроса: обновляется, когда человек перестал печатать
     const debouncedSearch = useDebounce(search);
@@ -41,6 +43,7 @@ export const usePlaylists = () => {
         sortDirection,
         // false тоже ушёл бы в урл и завёл лишнюю запись кеша
         onlyLikedByMe: likedFilter || undefined,
+        tagsIds: tags.length ? tags.map((tag) => tag.id) : undefined,
     });
 
     // страницу сбрасываем сразу: иначе останемся на пятой странице результатов, которых одна
@@ -71,6 +74,11 @@ export const usePlaylists = () => {
         setPage(1);
     };
 
+    const tagsHandler = (next: TagRef[]) => {
+        setTags(next);
+        setPage(1);
+    };
+
     // после удаления страниц может стать меньше текущего номера — съезжаем на последнюю
     // правим на рендере, а не эффектом: React выбросит этот проход до коммита, без лишнего запроса
     if (data && data.meta.pagesCount > 0 && page > data.meta.pagesCount) {
@@ -91,11 +99,14 @@ export const usePlaylists = () => {
         sortDirection,
         onlyLikedByMe: likedFilter,
         canFilterByLikes,
+        // сами теги отдаём наружу: пикер контролируемый, ему нужно value
+        tags,
         onPageChange: setPage,
         onSearchChange: searchHandler,
         onPageSizeChange: pageSizeHandler,
         onSortByChange: sortByHandler,
         onSortDirectionChange: sortDirectionHandler,
         onOnlyLikedByMeChange: onlyLikedByMeHandler,
+        onTagsChange: tagsHandler,
     };
 };

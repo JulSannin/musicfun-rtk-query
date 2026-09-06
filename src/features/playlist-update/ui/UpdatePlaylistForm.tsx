@@ -1,5 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
+import { type TagRef } from '@/shared/api';
+import { TagPicker } from '@/entities/tag';
+import { PLAYLIST_TAGS_MAX } from '@/entities/playlist';
 import {
     PlaylistFormFields,
     useFetchPlaylistQuery,
@@ -21,6 +24,13 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
         // фон выключен точечно, хотя в baseApi включен: перезапрос затер бы набранное
         { refetchOnFocus: false, refetchOnReconnect: false }
     );
+    // теги держим отдельно от react-hook-form: register работает со строкой
+    // из инпута, а тут массив объектов
+    // null означает «пользователь их не трогал» — тогда показываем то, что пришло
+    // с сервера. Так теги не нужно догонять эффектом, как поля формы:
+    // значение выводится на рендере и правило set-state-in-effect не нарушается
+    const [editedTags, setEditedTags] = useState<TagRef[] | null>(null);
+    const tags = editedTags ?? playlistResponse?.data.attributes.tags ?? [];
 
     const {
         register,
@@ -51,10 +61,8 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
                 // trim, потому что сервер считает " " непустым названием
                 title: values.title.trim(),
                 description: values.description.trim() || null,
-                // теги шлем заново: инпута для них нет, а пустой tagIds очистил бы их
-                tagIds: playlistResponse.data.attributes.tags.map(
-                    (tag) => tag.id
-                ),
+                // поле обязательное, и пустой массив означает «удалить все»
+                tagIds: tags.map((tag) => tag.id),
             },
         })
             .unwrap()
@@ -72,6 +80,11 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
 
             {/* поля и правила общие с формой создания, лежат в entities */}
             <PlaylistFormFields register={register} errors={errors} />
+            <TagPicker
+                value={tags}
+                onChange={setEditedTags}
+                max={PLAYLIST_TAGS_MAX}
+            />
 
             <button>update playlist</button>
             {/* type="button" обязателен, иначе кнопка отправит форму вместо отмены */}
