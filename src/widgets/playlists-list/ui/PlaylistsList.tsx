@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { PlaylistListItemResource } from '@/entities/playlist';
+import { useGetMeQuery } from '@/entities/profile';
 import { UpdatePlaylistForm } from '@/features/playlist-update';
 import { LinearProgress } from '@/shared/ui';
 import { PlaylistCard } from './PlaylistCard';
@@ -33,6 +34,14 @@ export const PlaylistsList = ({
     // это состояние списка, поэтому живёт здесь, а не в странице
     const [playlistId, setPlaylistId] = useState<string | null>(null);
 
+    // не новый запрос: Header подписан на getMe всегда, тут читается тот же кеш
+    // владельца считаем один раз на весь список, а не хуком в каждой карточке
+    const { data: me } = useGetMeQuery();
+
+    // тот же ответ решает и второй вопрос — может ли человек реагировать
+    // от плейлиста это не зависит, поэтому считаем один раз, а не в цикле
+    const canReact = Boolean(me);
+
     return (
         <>
             {isError && <div>Failed to load playlists</div>}
@@ -48,11 +57,15 @@ export const PlaylistsList = ({
             >
                 {(isFetching || isLoading) && <LinearProgress />}
                 {playlists?.map((playlist) => {
+                    // у неавторизованного me это undefined, и сравнение честно даёт false
+                    const isOwner = playlist.attributes.user.id === me?.userId;
                     const isEditing = playlistId === playlist.id;
                     return (
                         // key от плейлиста, а не индекс: при удалении из середины индексы съезжают
                         <div className={s.item} key={playlist.id}>
-                            {isEditing ? (
+                            {/* isOwner в условии не лишний: если разлогиниться */}
+                            {/* с открытой формой, она сама схлопнется в карточку */}
+                            {isEditing && isOwner ? (
                                 <UpdatePlaylistForm
                                     playlistId={playlist.id}
                                     // форме важно только закрыться, про null знает список
@@ -61,6 +74,8 @@ export const PlaylistsList = ({
                             ) : (
                                 <PlaylistCard
                                     playlist={playlist}
+                                    isOwner={isOwner}
+                                    canReact={canReact}
                                     onEdit={setPlaylistId}
                                 />
                             )}

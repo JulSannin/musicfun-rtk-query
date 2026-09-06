@@ -17,3 +17,4 @@ export type {
 export type { PlaylistFormValues } from './model/playlistForm';
 export { PlaylistInfo } from './ui/PlaylistInfo';
 export { PlaylistFormFields } from './ui/PlaylistFormFields';
+export { PlaylistCover } from './ui/PlaylistCover';

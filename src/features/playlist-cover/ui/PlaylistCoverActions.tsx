@@ -1,30 +1,26 @@
-import defaultCover from './default-playlist-cover.png';
+import type { ChangeEvent } from 'react';
+import type { Images } from '@/shared/api';
 import {
     useDeletePlaylistCoverMutation,
     useUploadPlaylistCoverMutation,
 } from '@/entities/playlist';
-import type { ChangeEvent } from 'react';
-import type { Images } from '@/shared/api';
 import {
     ALLOWED_IMAGE_TYPES,
     errorToast,
     validateImageFile,
 } from '@/shared/lib';
-import s from './PlaylistCover.module.css';
 
 type Props = {
     playlistId: string;
-    // весь плейлист компоненту не нужен, только его картинки
+    // картинку не рисуем, но по ней понимаем, есть ли что удалять
     images: Images;
 };
 
-// обложка плейлиста вместе с загрузкой и удалением
-export const PlaylistCover = ({ playlistId, images }: Props) => {
-    // сервер отдает несколько размеров одной картинки, берем оригинал
-    const originalCover = images.main?.find((img) => img.type === 'original');
-
-    // обложки может не быть, тогда показываем заглушку
-    const src = originalCover ? originalCover.url : defaultCover;
+// загрузка и удаление обложки; показывается только владельцу плейлиста
+// саму картинку рисует PlaylistCover из entities
+export const PlaylistCoverActions = ({ playlistId, images }: Props) => {
+    // проверка та же, что была рядом с img: пустой main означает "обложки нет"
+    const hasCover = images.main?.some((img) => img.type === 'original');
 
     // имена разводим: два isLoading в одной области видимости не уживутся
     const [uploadCover, { isLoading: isUploading }] =
@@ -32,7 +28,7 @@ export const PlaylistCover = ({ playlistId, images }: Props) => {
     const [deleteCover, { isLoading: isDeleting }] =
         useDeletePlaylistCoverMutation();
 
-    // пока идет любая операция с обложкой, вторую не начинаем
+    // пока идёт любая операция с обложкой, вторую не начинаем
     const isBusy = isUploading || isDeleting;
 
     const uploadCoverHandler = (event: ChangeEvent<HTMLInputElement>) => {
@@ -66,7 +62,6 @@ export const PlaylistCover = ({ playlistId, images }: Props) => {
 
     return (
         <>
-            <img src={src} alt="cover" width={'240px'} className={s.cover} />
             {/* accept только подсказывает браузеру фильтр, тип файла он не гарантирует */}
             <input
                 type="file"
@@ -77,7 +72,7 @@ export const PlaylistCover = ({ playlistId, images }: Props) => {
             {/* у загрузки нет своей кнопки, поэтому статус показываем отдельно */}
             {isUploading && <div>uploading...</div>}
             {/* удалять нечего, пока обложки нет */}
-            {originalCover && (
+            {hasCover && (
                 <button onClick={deleteCoverHandler} disabled={isBusy}>
                     {isDeleting ? 'deleting...' : 'delete cover'}
                 </button>
