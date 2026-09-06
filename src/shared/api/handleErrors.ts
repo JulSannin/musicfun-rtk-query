@@ -1,4 +1,3 @@
-// src/shared/api/handleErrors.ts
 import type { FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import { errorToast } from '@/shared/lib';
 

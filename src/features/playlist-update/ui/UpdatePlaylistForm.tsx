@@ -52,7 +52,7 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
     }, [playlistResponse, reset]);
 
     const onSubmit: SubmitHandler<PlaylistFormValues> = (values) => {
-        // без данных плейлиста нечего слать: tagIds берутся именно оттуда
+        // до загрузки слать нечего: форма ещё не показывает настоящие значения
         if (!playlistResponse) return;
 
         updatePlaylist({
@@ -64,6 +64,9 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
                 // поле обязательное, и пустой массив означает «удалить все»
                 tagIds: tags.map((tag) => tag.id),
             },
+            // те же теги, но с именами: на сервер уходят только id из attributes,
+            // а оптимистичному патчу списка нужно, что показать в карточке
+            tags,
         })
             .unwrap()
             .then(onClose)

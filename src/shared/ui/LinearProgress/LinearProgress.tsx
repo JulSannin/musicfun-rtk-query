@@ -1,4 +1,3 @@
-// LinearProgress.tsx
 import s from './LinearProgress.module.css';
 
 type Props = {

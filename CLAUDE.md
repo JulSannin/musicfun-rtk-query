@@ -35,6 +35,7 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 - Исключение: в `shared` правило `public-api` отключено, но по факту действуют бочки на уровне сегментов — `@/shared/api`, `@/shared/lib`, `@/shared/ui`, `@/shared/config`.
 - Сегменты внутри слайса: `api/` (эндпоинты + типы), `model/` (состояние, хуки, константы), `ui/` (компоненты).
 - Пример разделения: [PlaylistCard](src/widgets/playlists-list/ui/PlaylistCard.tsx) — виджет, потому что склеивает презентацию из `entities` с действиями из `features`; сама энтити импортировать фичу не может.
+- Но «энтити + фича» не обязано становиться виджетом. [TrackItem](src/entities/track/ui/TrackItem.tsx) и [TrackReactions](src/features/track-reaction/ui/TrackReactions.tsx) склеены прямо в [TracksPage](src/pages/tracks/ui/TracksPage.tsx): страница видит оба слоя, и этого достаточно. Виджет заводят, когда у склейки появляется своё состояние (режим редактирования в `PlaylistsList`) или второй потребитель (`/playlists` и `/profile`). У списка треков нет ни того, ни другого.
 - Импорт между слайсами одного слоя запрещён (`fsd/forbidden-imports`), и это уже трижды повлияло на раскладку: карточка живёт внутри виджета [playlists-list](src/widgets/playlists-list/) (список её рендерит), а не отдельным слайсом `widgets/playlist-card`; общее для двух фич уезжает слоем ниже — поля формы в [PlaylistFormFields](src/entities/playlist/ui/PlaylistFormFields.tsx) вместе с лимитами из [playlistForm.ts](src/entities/playlist/model/playlistForm.ts) делят `playlist-create` и `playlist-update`; а [TagPicker](src/entities/tag/ui/TagPicker.tsx) не встроен внутрь `PlaylistFormFields`, хотя логически им там место, — `entities/playlist` не имеет права импортировать `entities/tag`. Композиция уезжает наверх, к тому, кто видит оба слайса: пикер ставится рядом с полями формы в [UpdatePlaylistForm](src/features/playlist-update/ui/UpdatePlaylistForm.tsx) и на [PlaylistsPage](src/pages/playlists/ui/PlaylistsPage.tsx). Это общее правило: если двум энтити нужно встретиться, они встречаются слоем выше, а не импортируют друг друга.
 - В `index.ts` энтити наружу уходят RTK Query хуки (сам объект `playlistsApi`/`tracksApi` — нет), узкий набор типов и UI-компоненты. Тип отдаём только тот, который реально нужен снаружи.
 - Правила `insignificant-slice` и `repetitive-naming` в steiger выключены: слайс из одного файла (например [features/playlist-delete](src/features/playlist-delete/)) — нормально, ругаться не будет.
@@ -65,7 +66,7 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 - Один и тот же плейлист лежит сразу в нескольких записях кеша (каждый вариант списка + карточка `fetchPlaylist`), поэтому в `onQueryStarted` объявлен локальный `patchEverywhere(mutate)`, который прогоняет одну и ту же правку по всем ним. Патч по отсутствующей записи (карточка не открыта) просто ничего не делает — проверять наличие отдельно не нужно.
 - Порядок: сначала `applyReaction` (догадка +1/−1, чтобы кнопка отзывалась мгновенно), после `await queryFulfilled` — `syncReaction` точными числами сервера (за время открытой страницы лайкнуть мог кто-то ещё), в `catch` — `patch.undo()`.
 - `applyReaction` меняет объект **на месте**: он получает черновик immer из `updateQueryData`, а не копию. Возврат нового объекта тут молча ничего не изменит.
-- `dislikesCount` в `ReactionCounters` опционален: в списке треков сервер его не отдаёт вообще. Обе функции проверяют именно поле (`!== undefined`), а не тип реакции.
+- `dislikesCount` в `ReactionCounters` опционален: в списке треков сервер его не отдаёт вообще. Обе функции проверяют именно поле (`!== undefined`), а не тип реакции. То же ограничение видно и в UI: у [TrackReactions](src/features/track-reaction/ui/TrackReactions.tsx) кнопка дизлайка без числа, только с `aria-pressed`, в отличие от [PlaylistReactions](src/features/playlist-reaction/ui/PlaylistReactions.tsx). Счётчик появится только на странице трека — в `GET /playlists/tracks/{trackId}` поле есть.
 - Имена в ответе реакции не совпадают с атрибутами сущности (`likes`/`dislikes` против `likesCount`/`dislikesCount`) — перекладывает их `syncReaction`, больше нигде это делать не нужно.
 - У треков кеш другой формы: `infiniteQuery` держит `{ pages, pageParams }`, поэтому трек ищется циклом по `state.pages` с выходом по первому совпадению.
 
@@ -131,12 +132,18 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 
 Две разные модели пагинации живут рядом намеренно: плейлисты листаются номерами страниц (`query` + `Pagination`), треки — курсором через `build.infiniteQuery` (список пополняется, offset-пагинация давала бы дубли).
 
-Аргументы запроса в [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts) собираются по четырём правилам:
+Списки фильтруются одинаково в [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts) и [useTracks.ts](src/pages/tracks/model/useTracks.ts), аргументы запроса собираются по четырём правилам:
 
 - Пустое значение уходит как `undefined`, а не как `''`/`false`: RTK Query кеширует ответ под аргументом, и `search: ''` или `onlyLikedByMe: false` завели бы вторую запись кеша с тем же содержимым (плюс лишний параметр в урле). Поиск перед этим ещё и `trim()`, чтобы `" abc"` и `"abc"` не разъезжались.
 - Поиск в запрос уходит только через `useDebounce`: в состоянии живут две строки — сырая для инпута и отложенная для запроса.
-- Любая смена параметров списка (поиск, `pageSize`, `sortBy`, `sortDirection`, `onlyLikedByMe`) сбрасывает `page` в 1 — состав списка и количество страниц меняются, а номер страницы остался бы от прошлой выдачи. Поэтому у каждого сеттера свой хендлер, а не голый `setState` наружу.
-- Фильтр `onlyLikedByMe` требует авторизации: `canFilterByLikes` не только прячет чекбокс, но и гасит уже включённый фильтр при разлогине (`likedFilter = canFilterByLikes && onlyLikedByMe`) — иначе следующий запрос ушёл бы в 401.
+- Смена любого параметра сбрасывает `page` в 1 — но **только у плейлистов**: состав списка и количество страниц меняются, а номер остался бы от прошлой выдачи, поэтому у каждого сеттера свой хендлер. У треков хендлеров нет и сеттеры уходят наружу как есть: `infiniteQuery` кеширует страницы под набором аргументов, и смена фильтра сама переключает на другую запись с её собственной первой страницей (а возврат к прежнему набору мгновенный — его страницы никуда не делись).
+- Фильтры, завязанные на пользователя, гасятся при разлогине, а не только прячутся: `canFilterByLikes && onlyLikedByMe` у плейлистов, `canFilterByUser && ...` у треков — иначе следующий запрос ушёл бы с чужим `userId` или в 401.
+
+Про фильтры треков стоит знать отдельно:
+
+- `sortBy` у треков это `publishedAt | likesCount`, у плейлистов — `addedAt | likesCount`. Union'ы выглядят взаимозаменяемыми, но `PlaylistSortBy` для треков не подходит; у каждого слайса свой тип.
+- `includeDrafts` работает только в паре с `userId` текущего пользователя — по спеке черновики отдаются, если `userId === currentUserId`. Поэтому в UI это один переключатель «only mine (with drafts)», ставящий оба параметра: раздельные чекбоксы вводили бы в заблуждение, флаг сам по себе не делает ничего.
+- Фильтр по тегам работает и у гостя: `tags/search` защищён только `API-KEY`. Bearer-токен требуют 27 операций из 41, но не поиск тегов — а вот `artists/search` требует, и когда появится фильтр по артистам, его придётся прятать, как `onlyLikedByMe`.
 
 Три приёма из этих хуков стоит повторять:
 
@@ -156,6 +163,8 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 ### Индикаторы загрузки
 
 Два уровня: локальный (`isLoading`/`isFetching` конкретного хука прямо в компоненте, приглушает список или показывает `LoadingTrigger` при подгрузке страниц) и глобальный — [useGlobalLoading.ts](src/app/model/useGlobalLoading.ts) проходит по `state.baseApi.queries`/`mutations` и показывает `LinearProgress` в [App.tsx](src/app/App.tsx), если есть активный запрос. Эндпоинты со своим локальным индикатором перечислены в `excludedEndpoints` (по строковому имени, а не по `api.endpoints.x.name` — entities не отдают наружу сам объект api, см. выше) и глушат общий бар, кроме самого первого запроса, пока показать loading ещё нечем.
+
+Отсюда следствие, о котором легко забыть: раз `fetchTracks` и `fetchPlaylists` исключены, свой индикатор им обязателен, иначе смена фильтров выглядит зависанием. И у бесконечного списка условие не `isFetching`, а `isFetching && !isFetchingNextPage` (в [useTracks.ts](src/pages/tracks/model/useTracks.ts) отдаётся наружу как `isReloading`): при подгрузке следующей страницы `isFetching` тоже `true`, но список тогда не заменяется, а дополняется, и гасить его неправильно.
 
 ### Пропсы компонентов
 

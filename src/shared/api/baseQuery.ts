@@ -7,15 +7,13 @@ export const baseQuery = fetchBaseQuery({
     // бэкенд ждёт массивы повторяющимся ключом: tagsIds=a&tagsIds=b
     // URLSearchParams по умолчанию склеивает массив запятой и отдаёт tagsIds=a%2Cb,
     // что сервер принимает за один несуществующий id — фильтр молча вернёт пусто
-    // свой paramsSerializer отменяет встроенный stripUndefined,
-    // поэтому пустые значения выбрасываем здесь сами
     paramsSerializer: (params: Record<string, unknown>) => {
         const query = new URLSearchParams();
 
-        // в урл кладём только примитивы: объект String() превратил бы
-        // в "[object Object]" и молча отправил на бэкенд
-        // здесь же отсеиваются undefined и null — встроенный stripUndefined
-        // свой paramsSerializer отключает, чистить приходится самим
+        // в урл кладём только примитивы, и на этом же условии отсеиваются
+        // undefined с null: свой paramsSerializer отключает встроенный
+        // stripUndefined, так что чистить параметры приходится самим,
+        // а объект String() превратил бы в "[object Object]"
         const append = (key: string, value: unknown) => {
             if (
                 typeof value === 'string' ||

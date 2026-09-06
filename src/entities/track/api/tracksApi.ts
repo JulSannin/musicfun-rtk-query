@@ -5,7 +5,7 @@ import {
     CurrentUserReaction,
     syncReaction,
 } from '@/shared/api';
-import type { GetTrackListOutput } from './tracksApi.types';
+import type { FetchTracksArgs, GetTrackListOutput } from './tracksApi.types';
 
 // треки листаются курсором, а не номерами страниц: список пополняется,
 // и при offset-пагинации новый трек сдвинул бы все остальные вниз —
@@ -17,13 +17,13 @@ export const tracksApi = baseApi.injectEndpoints({
         // три параметра типа: ответ одной страницы, аргумент хука, тип курсора
         fetchTracks: build.infiniteQuery<
             GetTrackListOutput,
-            void,
+            FetchTracksArgs,
             string | undefined
         >({
             infiniteQueryOptions: {
                 // первую страницу просим без курсора
-                // именно undefined, а не null: fetchBaseQuery выбрасывает из params
-                // только undefined, а null ушел бы в урл строкой "?cursor=null"
+                // undefined, а не null: наш paramsSerializer выбрасывает оба,
+                // но undefined тут ещё и честнее — курсора просто нет
                 initialPageParam: undefined,
 
                 // курсор следующей страницы лежит в ответе предыдущей;
@@ -33,10 +33,13 @@ export const tracksApi = baseApi.injectEndpoints({
                     lastPage.meta.nextCursor ?? undefined,
             },
 
-            query: ({ pageParam }) => ({
+            query: ({ queryArg, pageParam }) => ({
                 method: 'GET',
                 url: 'playlists/tracks',
                 params: {
+                    // фильтры раскрываем первыми: постраничные параметры ниже
+                    // не должны перебиваться тем, что пришло сверху
+                    ...queryArg,
                     // без этого флага сервер вернет обычные страницы,
                     // а nextCursor всегда будет null
                     paginationType: 'cursor',

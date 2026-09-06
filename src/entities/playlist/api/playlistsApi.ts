@@ -1,4 +1,9 @@
-import type { Images, ReactionCounters, ReactionOutput } from '@/shared/api';
+import type {
+    Images,
+    ReactionCounters,
+    ReactionOutput,
+    TagRef,
+} from '@/shared/api';
 import {
     applyReaction,
     baseApi,
@@ -112,7 +117,14 @@ export const playlistsApi = baseApi
             // возвращает 204 без тела, поэтому тип ответа void
             updatePlaylist: build.mutation<
                 void,
-                { playlistId: string; attributes: UpdatePlaylistAttributes }
+                {
+                    playlistId: string;
+                    attributes: UpdatePlaylistAttributes;
+                    // теги целиком нужны только патчу кеша: на сервер уходят
+                    // одни id, а в списке лежат TagRef с именами, и взять имя
+                    // патчу больше неоткуда
+                    tags: TagRef[];
+                }
             >({
                 query: ({ playlistId, attributes }) => ({
                     method: 'PUT',
@@ -122,7 +134,10 @@ export const playlistsApi = baseApi
                     } satisfies UpdatePlaylistRequestPayload,
                 }),
 
-                async onQueryStarted({ playlistId, attributes }, lifecycleApi) {
+                async onQueryStarted(
+                    { playlistId, attributes, tags },
+                    lifecycleApi
+                ) {
                     // getState берем через lifecycleApi, а не деструктуризацией:
                     // RTK Query типизирует его как метод, и eslint (unbound-method)
                     // ругается на потерю this при отрыве от объекта
@@ -145,11 +160,17 @@ export const playlistsApi = baseApi
                                     const index = state.data.findIndex(
                                         (playlist) => playlist.id === playlistId
                                     );
-                                    // description и tags в списке не показываются вообще —
-                                    // их патчить незачем, даже если бы типы совпадали
                                     if (index !== -1) {
-                                        state.data[index].attributes.title =
+                                        const playlist = state.data[index];
+                                        playlist.attributes.title =
                                             attributes.title;
+                                        // теги карточка показывает, поэтому
+                                        // патчим и их — иначе до перезапроса
+                                        // рядом с новым названием висели бы
+                                        // старые теги
+                                        playlist.attributes.tags = tags;
+                                        // а вот description в списке нет вовсе:
+                                        // его в этом типе просто не существует
                                     }
                                 }
                             )

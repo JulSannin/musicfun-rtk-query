@@ -1,10 +1,38 @@
-import type { CurrentUserReaction, Images, User } from '@/shared/api';
+import type {
+    CurrentUserReaction,
+    Images,
+    SortDirection,
+    User,
+} from '@/shared/api';
 
 // типы API треков, написаны руками
 // сверять их нужно с api-generated/types.gen.ts — это выгрузка из свагера
 // перегенерировать справочник: npm run gen:api
 
 // ==================== GET /playlists/tracks ====================
+
+// поле сортировки списка треков
+// у треков это publishedAt, а у плейлистов addedAt — общего union нет,
+// и PlaylistSortBy сюда не подходит, хотя выглядит похоже
+export type TrackSortBy = 'publishedAt' | 'likesCount';
+
+// аргументы списка треков
+// курсора здесь нет намеренно: страницами заведует infiniteQuery
+// и подставляет его сам через pageParam
+export type FetchTracksArgs = {
+    search?: string;
+    sortBy?: TrackSortBy;
+    sortDirection?: SortDirection;
+    tagsIds?: string[];
+    // фильтра по артистам в UI пока нет: он требует поиска артистов,
+    // а тот, в отличие от поиска тегов, работает только с bearer-токеном
+    artistsIds?: string[];
+    userId?: string;
+    // черновики приезжают, только если userId — это сам текущий пользователь;
+    // флаг в одиночку не делает ничего
+    includeDrafts?: boolean;
+    onlyLikedByMe?: boolean;
+};
 
 // ответ со списком треков
 // included лежит рядом с data, а не внутри трека: имена артистов сервер отдает
