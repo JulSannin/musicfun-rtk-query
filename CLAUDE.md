@@ -101,7 +101,7 @@ OAuth-логин с парой access/refresh токенов. Три файла 
 - `erasableSyntaxOnly` — `enum`, `namespace` и параметры-свойства запрещены. Поэтому перечисления делаются объектом с `as const` и одноимённым типом (см. `CurrentUserReaction` в [src/shared/api/types.ts](src/shared/api/types.ts)).
 - `noUnusedLocals` / `noUnusedParameters` — неиспользуемое имя это ошибка сборки. Отсюда `_result`, `_error` в `providesTags`/`invalidatesTags`: подчёркивание глушит правило.
 
-При этом `strict` в конфиге **не включён** (проверяется через `npx tsc -p tsconfig.app.json --showConfig`), то есть `strictNullChecks` выключен и `null`/`undefined` сборка не ловит. Не полагайся на компилятор в проверке на пустоту — код это делает руками (type guard'ы в [handleErrors.ts](src/shared/api/handleErrors.ts) и [authTokens.ts](src/shared/api/authTokens.ts), опциональная цепочка в компонентах).
+Слова `strict` в конфиге нет, но TypeScript 6 включает его по умолчанию, и `strictNullChecks` **работает** (проверяется пробой: `const a: string = null` даёт TS2322). Практические следствия: `Map.get()` возвращает `V | undefined`, а `.filter(Boolean)` тип не сужает — нужен явный предикат `(x): x is T => Boolean(x)`, как в [useTracks.ts](src/pages/tracks/model/useTracks.ts). Ручные проверки на пустоту в коде (type guard'ы в [handleErrors.ts](src/shared/api/handleErrors.ts) и [authTokens.ts](src/shared/api/authTokens.ts), опциональная цепочка в компонентах) остаются, но теперь их подстраховывает компилятор.
 
 ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoidReturn: { attributes: false }` — async-обработчик прямо в JSX-атрибуте разрешён, а вот промис, переданный в проп с типом `() => void`, по-прежнему ошибка. Поэтому в [useInfiniteScroll.ts](src/shared/lib/hooks/useInfiniteScroll.ts) `fetchNextPage` объявлен как `() => unknown`.
 
@@ -130,7 +130,7 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 
 ### Пропсы компонентов
 
-Вниз передаются только те поля, которые компонент рисует, а не вся сущность: `PlaylistInfo` берёт `title` и `authorName`, `PlaylistCover` — одни `images`. Целый объект принимает только тот компонент, который стоит на границе списка ([PlaylistCard](src/widgets/playlists-list/ui/PlaylistCard.tsx), [TrackItem](src/entities/track/ui/TrackItem.tsx)). Компоненты из `shared/ui` про запросы не знают вообще — принимают значения и отдают колбэки.
+Вниз передаются только те поля, которые компонент рисует, а не вся сущность: `PlaylistInfo` берёт `title`, `authorName`, `tracksCount`, `duration` и готовые имена тегов (`tagNames`, а не сами `TagRef`), `PlaylistCover` — одни `images`. По той же причине `TrackItem` получает `artistNames` готовым массивом: разбор `included` из ответа JSON API живёт в [useTracks.ts](src/pages/tracks/model/useTracks.ts), где виден весь ответ целиком. Целый объект принимает только тот компонент, который стоит на границе списка ([PlaylistCard](src/widgets/playlists-list/ui/PlaylistCard.tsx), [TrackItem](src/entities/track/ui/TrackItem.tsx)). Компоненты из `shared/ui` про запросы не знают вообще — принимают значения и отдают колбэки.
 
 По этой же границе разведены показ и действие: картинку рисует [PlaylistCover](src/entities/playlist/ui/PlaylistCover.tsx) из `entities` (её видят все, включая неавторизованных), а загрузку и удаление обложки делает [PlaylistCoverActions](src/features/playlist-cover/ui/PlaylistCoverActions.tsx) из `features` — он картинку не рисует и берёт `images` только чтобы понять, есть ли что удалять. Мутации остаются в фиче, энтити о них не знает.
 
