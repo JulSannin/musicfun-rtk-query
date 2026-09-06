@@ -7,7 +7,8 @@ import {
 import {
     ALLOWED_IMAGE_TYPES,
     errorToast,
-    validateImageFile,
+    PLAYLIST_COVER_RULES,
+    validateImage,
 } from '@/shared/lib';
 
 type Props = {
@@ -31,14 +32,18 @@ export const PlaylistCoverActions = ({ playlistId, images }: Props) => {
     // пока идёт любая операция с обложкой, вторую не начинаем
     const isBusy = isUploading || isDeleting;
 
-    const uploadCoverHandler = (event: ChangeEvent<HTMLInputElement>) => {
+    const uploadCoverHandler = async (event: ChangeEvent<HTMLInputElement>) => {
         // files пуст, если пользователь закрыл диалог без выбора
         const file = event.target.files?.length && event.target.files[0];
 
+        // значение инпута сбрасываем сразу: иначе повторный выбор того же файла
+        // после ошибки не вызовет onChange и кнопка будет выглядеть сломанной
+        event.target.value = '';
+
         if (!file) return;
 
-        // правила лежат в shared/lib: они одни на все картинки этого API
-        const error = validateImageFile(file);
+        // правила лежат в shared/lib: они принадлежат API, а не этой кнопке
+        const error = await validateImage(file, PLAYLIST_COVER_RULES);
 
         if (error) {
             // клиентская проверка, до сервера дело не доходит — handleErrors тут ни при чем

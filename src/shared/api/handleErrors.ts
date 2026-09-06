@@ -70,6 +70,17 @@ export function handleErrors(error: FetchBaseQueryError) {
             }
             break;
 
+        // конфликт состояния: трек уже опубликован, тег с таким именем есть
+        // тела у 409 в спеке не описано, поэтому пробуем формат JSON:API,
+        // а иначе показываем свой текст — сырой ответ пользователю не нужен
+        case 409:
+            if (isErrorWithDetailArray(error.data)) {
+                errorToast(trimToMaxLength(error.data.errors[0].detail));
+            } else {
+                errorToast('This item already exists or is already up to date');
+            }
+            break;
+
         // слишком много запросов — { message: string }
         // раньше сюда же попадал 401 (невалидный API-KEY), теперь не долетает:
         // его перехватывает baseQueryWithReauth для refresh-флоу
