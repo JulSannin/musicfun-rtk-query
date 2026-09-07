@@ -1,12 +1,15 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { playerActions, selectCurrentTrackId } from '@/entities/player';
+import {
+    playerActions,
+    selectCurrentTrackId,
+    toPlayerTracks,
+} from '@/entities/player';
 import {
     DEFAULT_TRACK_SORT_BY,
     DEFAULT_TRACK_SORT_DIRECTION,
     useFetchTracksInfiniteQuery,
 } from '@/entities/track';
-import { toPlayerTracks } from './toPlayerTracks';
 
 // подставляет в пустой плеер свежие треки, чтобы полоса внизу не встречала
 // человека погашенными кнопками. Список плеер спрашивает сам: раньше это

@@ -6,7 +6,7 @@ import {
     type TrackSortBy,
 } from '@/entities/track';
 import { useGetMeQuery } from '@/entities/profile';
-import { toPlayerTracks } from '@/widgets/player';
+import { toPlayerTracks } from '@/entities/player';
 import type { SortDirection, TagRef } from '@/shared/api';
 import { useDebounce, useInfiniteScroll, useTrackPanel } from '@/shared/lib';
 

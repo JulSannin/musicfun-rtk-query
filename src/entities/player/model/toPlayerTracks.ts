@@ -1,11 +1,30 @@
-import type { PlayerTrack } from '@/entities/player';
-import type { GetTrackListOutput } from '@/entities/track';
+import type { Images } from '@/shared/api';
+import type { PlayerTrack } from './playerSlice';
+
+// минимум, который нужен очереди. Под него структурно подходят обе выдачи:
+// общий список треков (GetTrackListOutput) и состав плейлиста
+// (GetTracksForPlaylistOutput), хотя атрибуты у них разные — в составе нет
+// likesCount, user и isPublished, но играть трек это не мешает
+type PlayerSourcePage = {
+    data: {
+        id: string;
+        attributes: {
+            title: string;
+            duration: number;
+            images: Images;
+            attachments: { url: string }[];
+        };
+        relationships: { artists: { data: { id: string }[] } };
+    }[];
+    included: { id: string; attributes: { name: string } }[];
+};
 
 // превращает страницы ответа со списком треков в очередь плеера
-// живёт в виджете плеера: entities/track не имеет права знать про
-// entities/player, а склейка двух энтити всегда уезжает слоем выше.
-// Отсюда же ей пользуется страница треков — свою копию она не держит
-export const toPlayerTracks = (pages: GetTrackListOutput[]): PlayerTrack[] => {
+// живёт в entities/player, а не рядом с треками: параметр описан
+// структурно, поэтому импортировать entities/track (что запрещено)
+// не приходится. Пользуются им и страница треков, и состав плейлиста,
+// и подстановка очереди в плеер — копий этой логики быть не должно
+export const toPlayerTracks = (pages: PlayerSourcePage[]): PlayerTrack[] => {
     // имена артистов лежат в included каждой страницы, в самом треке только их id
     const artistNameById = new Map<string, string>(
         pages
