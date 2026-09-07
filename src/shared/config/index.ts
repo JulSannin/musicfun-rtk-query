@@ -1,1 +1,1 @@
-export { paths, TRACK_PARAM } from './paths';
+export { paths, TRACK_PARAM, playlistPath } from './paths';

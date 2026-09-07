@@ -3,6 +3,9 @@
 const paths = {
     Main: '/',
     Playlists: '/playlists',
+    // ":playlistId" подставляет роутер; ссылки собираются playlistPath ниже,
+    // чтобы шаблон пути жил в одном месте с роутером
+    Playlist: '/playlists/:playlistId',
     Tracks: '/tracks',
     Profile: '/profile',
     OAuthCallback: '/oauth/callback',
@@ -15,4 +18,8 @@ const paths = {
 // useTrackPanel, но имя лежит здесь, вместе с остальным словарём адресов
 const TRACK_PARAM = 'track';
 
-export { paths, TRACK_PARAM };
+// адрес конкретного плейлиста; строку в компонентах руками не собираем
+const playlistPath = (playlistId: string) =>
+    paths.Playlist.replace(':playlistId', playlistId);
+
+export { paths, TRACK_PARAM, playlistPath };

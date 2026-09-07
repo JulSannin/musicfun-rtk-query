@@ -3,11 +3,14 @@ import { useDeletePlaylistMutation } from '@/entities/playlist';
 type Props = {
     // мутации нужен только id, весь плейлист сюда не передаем
     playlistId: string;
+    // зовётся только после успеха; нужен странице плейлиста, чтобы уйти
+    // со страницы удалённого. В списке не передаётся — там уходить некуда
+    onDeleted?: () => void;
 };
 
 // кнопка удаления плейлиста вместе со своей мутацией
 // вынесена из карточки: карточка теперь только компонует, а не мутирует
-export const DeletePlaylistButton = ({ playlistId }: Props) => {
+export const DeletePlaylistButton = ({ playlistId, onDeleted }: Props) => {
     const [deletePlaylist] = useDeletePlaylistMutation();
 
     // обработчик удаления плейлиста
@@ -18,6 +21,9 @@ export const DeletePlaylistButton = ({ playlistId }: Props) => {
         if (confirm('Are you sure you want to delete the playlist?')) {
             deletePlaylist(playlistId)
                 .unwrap()
+                // только после успеха: на 403 уходить со страницы нечестно,
+                // плейлист остался на месте
+                .then(() => onDeleted?.())
                 // catch пустой намеренно: тост уже показал handleErrors
                 // в baseQueryWithReauth, здесь только глушим промис
                 .catch(() => {});

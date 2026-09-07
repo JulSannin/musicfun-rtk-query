@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router';
 import { MainPage } from '@/pages/main';
 import { PlaylistsPage } from '@/pages/playlists';
+import { PlaylistPage } from '@/pages/playlist';
 import { TracksPage } from '@/pages/tracks';
 import { ProfilePage } from '@/pages/profile';
 import { OAuthCallbackPage } from '@/pages/oauth-callback';
@@ -16,6 +17,7 @@ export const Routing = () => (
     <Routes>
         <Route path={paths.Main} element={<MainPage />} />
         <Route path={paths.Playlists} element={<PlaylistsPage />} />
+        <Route path={paths.Playlist} element={<PlaylistPage />} />
         <Route path={paths.Tracks} element={<TracksPage />} />
         <Route path={paths.Profile} element={<ProfilePage />} />
         <Route path={paths.OAuthCallback} element={<OAuthCallbackPage />} />

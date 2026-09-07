@@ -6,17 +6,27 @@ import {
     syncReaction,
 } from '@/shared/api';
 import type {
+    AddTrackToPlaylistRequestPayload,
+    FetchPlaylistTracksArgs,
     FetchTracksArgs,
-    GetTrackListOutput,
-    GetTrackDetailsOutput,
     FetchTrackArgs,
+    GetTrackDetailsOutput,
+    GetTrackListOutput,
+    GetTracksForPlaylistOutput,
+    ReorderTrackRequestPayload,
 } from './tracksApi.types';
 
 // треки листаются курсором, а не номерами страниц: список пополняется,
 // и при offset-пагинации новый трек сдвинул бы все остальные вниз —
 // на второй странице показался бы дубль с первой
 export const tracksApi = baseApi
-    .enhanceEndpoints({ addTagTypes: ['Track'] })
+    // Playlists и Playlist объявлены ещё и в playlistsApi: типы тегов глобальны
+    // для baseApi, дубль в списке безвреден. А вот опечатка в имени тихо
+    // сломает инвалидацию — состав плейлиста меняет tracksCount и duration
+    // в карточке, и сбрасывать их приходится отсюда
+    .enhanceEndpoints({
+        addTagTypes: ['Track', 'PlaylistTracks', 'Playlists', 'Playlist'],
+    })
     .injectEndpoints({
         endpoints: (build) => ({
             // infiniteQuery, а не query: RTK Query сам копит страницы в одной записи
@@ -71,6 +81,144 @@ export const tracksApi = baseApi
                     { type: 'Track', id: trackId },
                 ],
             }),
+            // GET запрос
+            // состав плейлиста; доступен и гостю — только API-KEY.
+            // Эндпоинт живёт здесь, а не в playlistsApi: ответ это треки,
+            // а entities/playlist не имеет права импортировать их типы
+            fetchPlaylistTracks: build.query<
+                GetTracksForPlaylistOutput,
+                FetchPlaylistTracksArgs
+            >({
+                query: ({ playlistId }) => ({
+                    method: 'GET',
+                    url: `playlists/${playlistId}/tracks`,
+                }),
+
+                // порядок нормализуем один раз, на входе в кеш, а не при
+                // отрисовке. Дальше массивом распоряжается оптимистичный патч
+                // перестановки: пересортировка по order отменяла бы его, ведь
+                // новых номеров сервер в ответ на reorder не присылает
+                transformResponse: (response: GetTracksForPlaylistOutput) => ({
+                    ...response,
+                    data: [...response.data].sort(
+                        (a, b) => a.attributes.order - b.attributes.order
+                    ),
+                }),
+
+                providesTags: (_result, _error, { playlistId }) => [
+                    { type: 'PlaylistTracks', id: playlistId },
+                ],
+            }),
+
+            // POST запрос
+            // добавляет трек в плейлист
+            addTrackToPlaylist: build.mutation<
+                void,
+                { playlistId: string; trackId: string }
+            >({
+                query: ({ playlistId, trackId }) => ({
+                    method: 'POST',
+                    url: `playlists/${playlistId}/relationships/tracks`,
+                    body: {
+                        data: {
+                            type: 'playlist-tracks',
+                            attributes: { trackId },
+                        },
+                    } satisfies AddTrackToPlaylistRequestPayload,
+                }),
+
+                // 403 здесь значит не только «чужой плейлист», но и «уже
+                // 10 треков»: текст приходит от сервера, показывает handleErrors
+                invalidatesTags: (_result, _error, { playlistId }) => [
+                    { type: 'PlaylistTracks', id: playlistId },
+                    // в карточке и в шапке страницы меняются tracksCount
+                    // и общая длительность
+                    { type: 'Playlists', id: 'LIST' },
+                    { type: 'Playlist', id: playlistId },
+                ],
+            }),
+
+            // DELETE запрос
+            // убирает трек из плейлиста; сам трек при этом остаётся жив
+            removeTrackFromPlaylist: build.mutation<
+                void,
+                { playlistId: string; trackId: string }
+            >({
+                query: ({ playlistId, trackId }) => ({
+                    method: 'DELETE',
+                    url: `playlists/${playlistId}/relationships/tracks/${trackId}`,
+                }),
+
+                invalidatesTags: (_result, _error, { playlistId }) => [
+                    { type: 'PlaylistTracks', id: playlistId },
+                    { type: 'Playlists', id: 'LIST' },
+                    { type: 'Playlist', id: playlistId },
+                ],
+            }),
+
+            // PUT запрос
+            // меняет позицию трека внутри плейлиста
+            reorderPlaylistTrack: build.mutation<
+                void,
+                {
+                    playlistId: string;
+                    trackId: string;
+                    // сервер принимает id трека, ПОСЛЕ которого встать;
+                    // null означает «в начало». Собственный id подставлять
+                    // нельзя — бэкенд ответит 400 «cannot place after itself»
+                    putAfterItemId: string | null;
+                }
+            >({
+                query: ({ playlistId, trackId, putAfterItemId }) => ({
+                    method: 'PUT',
+                    url: `playlists/${playlistId}/tracks/${trackId}/reorder`,
+                    body: {
+                        putAfterItemId,
+                    } satisfies ReorderTrackRequestPayload,
+                }),
+
+                async onQueryStarted(
+                    { playlistId, trackId, putAfterItemId },
+                    { dispatch, queryFulfilled }
+                ) {
+                    // порядок правим сразу: инвалидация заставляла бы список
+                    // прыгать на каждое нажатие, пока едет ответ
+                    const patch = dispatch(
+                        tracksApi.util.updateQueryData(
+                            'fetchPlaylistTracks',
+                            { playlistId },
+                            (state) => {
+                                const from = state.data.findIndex(
+                                    (track) => track.id === trackId
+                                );
+
+                                if (from === -1) return;
+
+                                const [moved] = state.data.splice(from, 1);
+
+                                const after = putAfterItemId
+                                    ? state.data.findIndex(
+                                          (track) => track.id === putAfterItemId
+                                      )
+                                    : -1;
+
+                                // null значит «в начало»: -1 + 1 даёт 0
+                                state.data.splice(after + 1, 0, moved);
+                            }
+                        )
+                    );
+
+                    try {
+                        await queryFulfilled;
+                    } catch {
+                        patch.undo();
+                    }
+                },
+
+                // invalidatesTags нет намеренно: порядок уже поправлен патчем,
+                // а состав от перестановки не меняется
+            }),
+
             // POST / DELETE запрос
             // ставит или снимает реакцию на трек
             // устроена как setPlaylistReaction, но кеш другой: у infiniteQuery
@@ -107,6 +255,14 @@ export const tracksApi = baseApi
                         'fetchTracks'
                     );
 
+                    // тот же трек может лежать в составе нескольких
+                    // плейлистов — патчим каждый закешированный
+                    const playlistArgs =
+                        tracksApi.util.selectCachedArgsForQuery(
+                            lifecycleApi.getState(),
+                            'fetchPlaylistTracks'
+                        );
+
                     // в списке треков сервер отдаёт только likesCount:
                     // дизлайк меняет состояние кнопки, но своего счётчика не имеет,
                     // и applyReaction пропускает отсутствующее поле
@@ -132,6 +288,25 @@ export const tracksApi = baseApi
                                                 break;
                                             }
                                         }
+                                    }
+                                )
+                            )
+                        ),
+
+                        ...playlistArgs.map((args) =>
+                            dispatch(
+                                tracksApi.util.updateQueryData(
+                                    'fetchPlaylistTracks',
+                                    args,
+                                    (state) => {
+                                        const track = state.data.find(
+                                            (item) => item.id === trackId
+                                        );
+
+                                        // счётчиков в этой выдаче нет вовсе,
+                                        // меняется только состояние кнопки —
+                                        // applyReaction пропускает отсутствующие поля
+                                        if (track) mutate(track.attributes);
                                     }
                                 )
                             )
@@ -182,5 +357,9 @@ export const tracksApi = baseApi
 export const {
     useFetchTracksInfiniteQuery,
     useFetchTrackQuery,
+    useFetchPlaylistTracksQuery,
+    useAddTrackToPlaylistMutation,
+    useRemoveTrackFromPlaylistMutation,
+    useReorderPlaylistTrackMutation,
     useSetTrackReactionMutation,
 } = tracksApi;

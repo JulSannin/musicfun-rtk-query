@@ -150,3 +150,70 @@ type TrackDetailsAttributes = {
     publishedAt?: string | null;
     currentUserReaction: CurrentUserReaction;
 };
+
+// ==================== GET /playlists/{playlistId}/tracks ====================
+// пагинации нет ни в каком виде: в плейлист влезает не больше 10 треков,
+// и query-параметров у этой ручки не существует
+
+export type FetchPlaylistTracksArgs = {
+    playlistId: string;
+};
+
+export type GetTracksForPlaylistOutput = {
+    data: TrackListItemResourceForPlaylist[];
+    // только totalCount: ни страниц, ни курсора здесь нет
+    meta: { totalCount: number };
+    included: IncludedArtistOutput[];
+};
+
+export type TrackListItemResourceForPlaylist = {
+    id: string;
+    type: string;
+    attributes: TrackListItemAttributesForPlaylist;
+    relationships: TrackRelationships;
+};
+
+// форма отличается от общего списка треков: здесь есть order и updatedAt,
+// но нет likesCount, user и isPublished, а реакция может прийти null.
+// Из-за отсутствия likesCount ReactionCounters к этой форме не подходит,
+// поэтому кнопок реакций в составе плейлиста нет
+// не экспортируем: компонентам уходят отдельные поля
+// currentUserReaction: в api-json у поля стоит nullable: true, а в выгрузке
+// types.gen.ts null потерялся — это единственное поле во всей спеке, где enum
+// и nullable встречаются вместе, и генератор его не удержал (соседний
+// publishedAt в той же схеме доехал как string | null). Выгрузка делается
+// из api-json, поэтому первичен он: держим null и гасим его при отрисовке
+type TrackListItemAttributesForPlaylist = {
+    title: string;
+    // позиция в плейлисте; ею и сортируем список
+    order: number;
+    addedAt: string;
+    updatedAt: string;
+    attachments: TrackAttachment[];
+    images: Images;
+    currentUserReaction: CurrentUserReaction | null;
+    publishedAt?: string | null;
+    duration: number;
+};
+
+// ============ POST /playlists/{playlistId}/relationships/tracks ============
+
+// конверт JSON API; наружу мутация принимает только playlistId и trackId
+export type AddTrackToPlaylistRequestPayload = {
+    data: {
+        // в свагере и в выгрузке это просто string, а не enum, поэтому
+        // и здесь string: сужать до литерала значило бы придумать за API.
+        // Значение "playlist-tracks" берётся из поля example — в отличие
+        // от 'playlists' в теле плейлиста, оно ещё не подтверждено
+        // работающим запросом
+        type: string;
+        attributes: { trackId: string };
+    };
+};
+
+// ========= PUT /playlists/{playlistId}/tracks/{trackId}/reorder =========
+
+// id трека, ПОСЛЕ которого встать; null означает «в начало списка»
+export type ReorderTrackRequestPayload = {
+    putAfterItemId: string | null;
+};

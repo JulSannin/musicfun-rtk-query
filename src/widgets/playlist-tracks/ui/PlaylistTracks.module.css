@@ -1,0 +1,42 @@
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-left: 24px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+/* название с артистами занимает всю свободную ширину, кнопки справа */
+.info {
+    flex: 1;
+    min-width: 0;
+}
+
+.titleButton {
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: #0066cc;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.artists {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+/* моноширинные цифры: длительности выстраиваются в колонку */
+.duration {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+}
