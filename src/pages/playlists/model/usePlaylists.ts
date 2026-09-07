@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import {
     useFetchPlaylistsQuery,
     type PlaylistSortBy,
@@ -7,18 +8,53 @@ import { useGetMeQuery } from '@/entities/profile';
 import type { SortDirection, TagRef } from '@/shared/api';
 import { useDebounce } from '@/shared/lib';
 
+// в каком параметре адреса лежит поиск
+// имя локальное: читает и пишет его только эта страница, в отличие
+// от TRACK_PARAM, который нужен сразу двум слоям
+const SEARCH_PARAM = 'search';
+
 // владеет параметрами списка плейлистов и самим запросом
 export const usePlaylists = () => {
+    // поиск живёт в адресе: с появлением страницы плейлиста уход на неё
+    // и «назад» иначе стирали бы набранное. Номер страницы намеренно
+    // оставлен в useState — см. комментарий к правке page ниже
+    const [searchParams, setSearchParams] = useSearchParams();
+    const searchFromUrl = searchParams.get(SEARCH_PARAM) ?? '';
+
     const [page, setPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(8);
 
-    // сырое значение инпута, нужно только для отрисовки поля
-    const [search, setSearch] = useState<string>('');
+    // сырое значение инпута, нужно только для отрисовки поля;
+    // начальное берём из адреса, чтобы возврат восстанавливал поиск
+    const [search, setSearch] = useState<string>(searchFromUrl);
 
     const [tags, setTags] = useState<TagRef[]>([]);
 
     // значение для запроса: обновляется, когда человек перестал печатать
     const debouncedSearch = useDebounce(search);
+
+    // в адрес поиск уезжает уже отложенным и через replace: иначе каждая
+    // буква была бы отдельным переходом, и «назад» пришлось бы жать
+    // столько раз, сколько символов набрали
+    useEffect(() => {
+        const next = debouncedSearch.trim();
+        if (next === searchFromUrl) return;
+
+        setSearchParams(
+            (prev) => {
+                const params = new URLSearchParams(prev);
+
+                if (next) {
+                    params.set(SEARCH_PARAM, next);
+                } else {
+                    params.delete(SEARCH_PARAM);
+                }
+
+                return params;
+            },
+            { replace: true }
+        );
+    }, [debouncedSearch, searchFromUrl, setSearchParams]);
 
     const [sortBy, setSortBy] = useState<PlaylistSortBy>('addedAt');
     const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
