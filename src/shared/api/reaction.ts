@@ -2,10 +2,12 @@ import { CurrentUserReaction } from './types';
 import type { ReactionOutput } from './types';
 
 // то, что реакция меняет в атрибутах сущности
-// dislikesCount опционален: в списке треков сервер его вообще не отдаёт
+// счётчики оба опциональны, потому что выдачи отличаются: в списке треков
+// сервер не отдаёт dislikesCount, а в составе плейлиста не отдаёт ни одного
+// из них — там есть только сама реакция, и она может прийти null
 export type ReactionCounters = {
-    currentUserReaction: CurrentUserReaction;
-    likesCount: number;
+    currentUserReaction: CurrentUserReaction | null;
+    likesCount?: number;
     dislikesCount?: number;
 };
 
@@ -22,7 +24,9 @@ export const applyReaction = (
     // но выход оставляем: он делает функцию безопасной при повторном вызове
     if (prev === next) return;
 
-    if (prev === CurrentUserReaction.Like) {
+    // счётчик правим, только если сервер его вообще прислал: поле проверяем
+    // отдельно от реакции — состояние кнопки живёт и без чисел
+    if (prev === CurrentUserReaction.Like && target.likesCount !== undefined) {
         target.likesCount -= 1;
     }
 
@@ -34,7 +38,7 @@ export const applyReaction = (
         target.dislikesCount -= 1;
     }
 
-    if (next === CurrentUserReaction.Like) {
+    if (next === CurrentUserReaction.Like && target.likesCount !== undefined) {
         target.likesCount += 1;
     }
 
@@ -55,7 +59,12 @@ export const syncReaction = (
     output: ReactionOutput
 ) => {
     target.currentUserReaction = output.value;
-    target.likesCount = output.likes;
+
+    // как и в applyReaction: кладём только те счётчики, которые в этой
+    // выдаче вообще существуют
+    if (target.likesCount !== undefined) {
+        target.likesCount = output.likes;
+    }
 
     if (target.dislikesCount !== undefined) {
         target.dislikesCount = output.dislikes;
