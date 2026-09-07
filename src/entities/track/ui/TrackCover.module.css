@@ -1,0 +1,28 @@
+.cover {
+    object-fit: cover;
+    border-radius: 4px;
+    /* обложка не должна сжиматься, когда рядом длинное название */
+    flex-shrink: 0;
+}
+
+.small {
+    width: 48px;
+    height: 48px;
+}
+
+.large {
+    width: 200px;
+    height: 200px;
+}
+
+.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ececec;
+    color: #999;
+}
+
+.placeholder.large {
+    font-size: 48px;
+}

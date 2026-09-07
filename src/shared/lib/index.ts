@@ -7,4 +7,5 @@ export {
 } from './validateImageFile';
 export { formatDuration } from './formatDuration';
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';
+export { useTrackPanel } from './hooks/useTrackPanel';
 export { errorToast, successToast } from './toast';

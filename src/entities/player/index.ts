@@ -5,6 +5,7 @@ export {
     selectCurrentTrack,
     selectCurrentTrackId,
     selectIsPlaying,
+    selectQueue,
     selectHasNext,
     selectHasPrev,
 } from './model/playerSlice';

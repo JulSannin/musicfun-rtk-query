@@ -1,0 +1,42 @@
+/* панель поверх страницы справа: список под ней остаётся смонтированным,
+   поэтому позиция прокрутки и уже подгруженные страницы не теряются */
+.panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    /* снизу оставляем полосу плеера: она fixed и перекрыла бы содержимое */
+    bottom: 72px;
+    z-index: 9;
+
+    width: min(380px, 100%);
+    padding: 16px;
+    overflow-y: auto;
+
+    background: #fff;
+    border-left: 1px solid #ddd;
+    box-shadow: -4px 0 16px rgb(0 0 0 / 8%);
+}
+
+.close {
+    float: right;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    opacity: 0.8;
+    font-size: 14px;
+}
+
+/* переносы строк в тексте песни значимы: сервер отдаёт их как есть */
+.lyrics {
+    white-space: pre-wrap;
+}

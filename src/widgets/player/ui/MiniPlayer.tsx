@@ -8,16 +8,26 @@ import {
     selectIsPlaying,
 } from '@/entities/player';
 import { errorToast, formatDuration } from '@/shared/lib';
+import { usePrimePlayer } from '../model/usePrimePlayer';
 import s from './MiniPlayer.module.css';
 
 // до этой секунды кнопка «назад» ещё считается переходом на прошлый трек,
 // дальше — перемоткой текущего в начало; так устроены все плееры
 const RESTART_THRESHOLD = 3;
 
+type Props = {
+    // «показать этот трек»; плеер не знает, где в приложении живут
+    // подробности, и отдаёт наверх только id
+    onOpenTrack: (trackId: string) => void;
+};
+
 // единственный <audio> в приложении
 // рендерится в App рядом с Header, вне Routing: внутри страницы элемент
 // размонтировался бы на переходе и музыка обрывалась бы на каждой ссылке
-export const MiniPlayer = () => {
+export const MiniPlayer = ({ onOpenTrack }: Props) => {
+    // плеер сам добывает себе первую очередь, не дожидаясь страницы треков
+    usePrimePlayer();
+
     const dispatch = useDispatch();
 
     const track = useSelector(selectCurrentTrack);
@@ -28,13 +38,44 @@ export const MiniPlayer = () => {
     const audioRef = useRef<HTMLAudioElement>(null);
 
     // прогресс держим здесь, а не в сторе: timeupdate стреляет несколько раз
-    // в секунду, и каждый dispatch перерисовывал бы всех подписчиков плеера
-    const [currentTime, setCurrentTime] = useState(0);
-    // длительность из метаданных файла; пока их нет, показываем число сервера
-    const [loadedDuration, setLoadedDuration] = useState(0);
+    // в секунду, и каждый dispatch перерисовывал бы всех подписчиков плеера.
+    // Рядом с числами лежит id трека, которому они принадлежат: сбрасывать их
+    // по событию нельзя — при preload="none" loadstart не приходит до первого
+    // play, и на паузе после переключения показалась бы позиция прошлого трека
+    const [progress, setProgress] = useState<{
+        trackId: string;
+        time: number;
+        // длительность из метаданных файла; пока их нет, берём число сервера
+        loadedDuration: number;
+    } | null>(null);
+
     const [volume, setVolume] = useState(1);
 
     const trackId = track?.id;
+
+    // числа чужого трека не показываем, а обнуляем прямо на рендере —
+    // тот же приём, что с тегами в форме редактирования плейлиста
+    const ownProgress = progress?.trackId === trackId ? progress : null;
+    const currentTime = ownProgress?.time ?? 0;
+    const loadedDuration = ownProgress?.loadedDuration ?? 0;
+
+    // патчим одно поле, второе сохраняем — но только если оно от этого же трека
+    const updateProgress = (
+        patch: Partial<{ time: number; loadedDuration: number }>
+    ) => {
+        if (!trackId) return;
+
+        setProgress((prev) => {
+            const own = prev?.trackId === trackId ? prev : null;
+
+            return {
+                trackId,
+                time: own?.time ?? 0,
+                loadedDuration: own?.loadedDuration ?? 0,
+                ...patch,
+            };
+        });
+    };
 
     // синхронизация звука с состоянием: play/pause приходят и отсюда,
     // и из кнопки в списке, поэтому источник правды — стор, а не элемент
@@ -95,9 +136,17 @@ export const MiniPlayer = () => {
         const audio = audioRef.current;
         if (!audio) return;
 
-        audio.currentTime = seconds;
+        // при preload="none" до первого play метаданных ещё нет, и браузер
+        // запоминает позицию как стартовую. Обработчик на этом падать
+        // не должен, поэтому присваивание в try
+        try {
+            audio.currentTime = seconds;
+        } catch {
+            return;
+        }
+
         // ставим сразу, не дожидаясь timeupdate: иначе ползунок отскакивает назад
-        setCurrentTime(seconds);
+        updateProgress({ time: seconds });
     };
 
     const prevHandler = () => {
@@ -116,8 +165,14 @@ export const MiniPlayer = () => {
                 // именно undefined, а не пустая строка: src="" браузер
                 // разрешает в адрес самой страницы и сразу бросает error
                 src={track?.url}
+                // без этого браузер сам полез бы за метаданными mp3 сразу
+                // после подстановки трека — то есть при каждом запуске
+                // приложения качал бы кусок файла, который никто не просил.
+                // Длительность и так известна из ответа сервера, а ошибку
+                // битой ссылки честнее показывать по нажатию play
+                preload="none"
                 onTimeUpdate={(e) =>
-                    setCurrentTime(e.currentTarget.currentTime)
+                    updateProgress({ time: e.currentTarget.currentTime })
                 }
                 onLoadedMetadata={(e) => {
                     const { duration } = e.currentTarget;
@@ -126,14 +181,14 @@ export const MiniPlayer = () => {
                     // Infinity: ползунок с max=Infinity перестаёт двигаться,
                     // а formatDuration печатает "Infinity:NaN:NaN".
                     // В этом случае остаёмся на числе сервера
-                    setLoadedDuration(Number.isFinite(duration) ? duration : 0);
+                    updateProgress({
+                        loadedDuration: Number.isFinite(duration)
+                            ? duration
+                            : 0,
+                    });
                 }}
-                // сброс на старте загрузки нового src, а не в эффекте:
-                // правило set-state-in-effect запрещает сеттер в useEffect
-                onLoadStart={() => {
-                    setCurrentTime(0);
-                    setLoadedDuration(0);
-                }}
+                // отдельного сброса прогресса на смене трека нет: числа
+                // хранятся вместе с id трека и обнуляются сами на рендере
                 // автопереход к следующему: разрешён без нового клика, потому
                 // что активация пользователя уже была на первом play
                 onEnded={() => dispatch(playerActions.next())}
@@ -152,7 +207,15 @@ export const MiniPlayer = () => {
             <div className={s.info}>
                 {track ? (
                     <>
-                        <div className={s.title}>{track.title}</div>
+                        {/* название — кнопка: раскрывает подробности трека.
+                            Куда именно вести, решает app, плеер отдаёт id */}
+                        <button
+                            type="button"
+                            className={s.title}
+                            onClick={() => onOpenTrack(track.id)}
+                        >
+                            {track.title}
+                        </button>
                         {/* у трека может не быть ни одного артиста */}
                         {track.artistNames.length > 0 && (
                             <div className={s.artists}>

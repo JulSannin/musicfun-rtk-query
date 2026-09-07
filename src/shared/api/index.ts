@@ -4,6 +4,7 @@ export type {
     User,
     Images,
     TagRef,
+    ArtistRef,
     Cover,
     ReactionOutput,
     SortDirection,

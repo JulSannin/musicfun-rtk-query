@@ -3,6 +3,8 @@ import type {
     Images,
     SortDirection,
     User,
+    TagRef,
+    ArtistRef,
 } from '@/shared/api';
 
 // типы API треков, написаны руками
@@ -106,4 +108,45 @@ type JsonApiMetaWithPagingAndCursor = {
     pagesCount: number | null;
     // курсор следующей страницы; null означает, что список кончился
     nextCursor: string | null;
+};
+
+// ==================== GET /playlists/tracks/{trackId} ====================
+// Arguments: trackId: string
+
+export type FetchTrackArgs = {
+    trackId: string;
+};
+
+export type GetTrackDetailsOutput = {
+    data: TrackDetailsResource;
+};
+
+export type TrackDetailsResource = {
+    id: string;
+    type: string;
+    attributes: TrackDetailsAttributes;
+};
+
+// в отличие от списка здесь есть lyrics, releaseDate, теги и артисты,
+// а артисты лежат прямо в атрибутах — included на этой ручке нет вообще
+// не экспортируем: компонентам уходят отдельные поля, а не весь объект
+type TrackDetailsAttributes = {
+    title: string;
+    lyrics?: string | null;
+    releaseDate?: string | null;
+    addedAt: string;
+    updatedAt: string;
+    duration: number;
+    likesCount: number;
+    // в свагере поле помечено deprecated (единственное такое во всей спеке):
+    // показывать можно, но завязывать на него что-то новое не стоит
+    dislikesCount: number;
+    attachments: TrackAttachment[];
+    images: Images;
+    tags: TagRef[];
+    artists: ArtistRef[];
+    user: User;
+    isPublished: boolean;
+    publishedAt?: string | null;
+    currentUserReaction: CurrentUserReaction;
 };

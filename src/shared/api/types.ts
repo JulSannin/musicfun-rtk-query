@@ -20,6 +20,12 @@ export type TagRef = {
     name: string;
 };
 
+// артист трека; на запись сервер, как и с тегами, ждёт только массив id
+export type ArtistRef = {
+    id: string;
+    name: string;
+};
+
 // один размер обложки
 // на одну картинку сервер отдает несколько таких вариантов
 export type Cover = {

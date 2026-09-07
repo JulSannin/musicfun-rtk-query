@@ -17,6 +17,7 @@ export const TracksPage = () => {
     const {
         items,
         queue,
+        onTrackSelect,
         isLoading,
         isError,
         isReloading,
@@ -130,7 +131,13 @@ export const TracksPage = () => {
                             queue={queue}
                             canPlay={track.attributes.attachments.length > 0}
                         />
-                        <TrackItem track={track} artistNames={artistNames} />
+                        <div className={s.track}>
+                            <TrackItem
+                                track={track}
+                                artistNames={artistNames}
+                                onSelect={onTrackSelect}
+                            />
+                        </div>
                         <TrackReactions
                             trackId={track.id}
                             likesCount={track.attributes.likesCount}

@@ -56,6 +56,20 @@ const playerSlice = createSlice({
             state.isPlaying = true;
         },
 
+        // подставляет список в плеер, не начиная воспроизведение
+        // нужно, чтобы полоса внизу не встречала человека погашенными
+        // кнопками: запустить музыку можно прямо из неё, не выискивая
+        // строку в списке
+        primeQueue(state, action: PayloadAction<{ queue: PlayerTrack[] }>) {
+            // уже что-то выбрано — не трогаем: человек мог поставить на паузу
+            // или уйти на другую страницу, и подменять ему трек нельзя
+            if (state.currentIndex !== -1) return;
+            if (action.payload.queue.length === 0) return;
+
+            state.queue = action.payload.queue;
+            state.currentIndex = 0;
+        },
+
         // возобновление того же трека: src не меняется, и звук пойдёт
         // с той же секунды, на которой поставили паузу
         play(state) {
@@ -101,6 +115,11 @@ export const selectCurrentTrackId = (state: WithPlayer): string | null =>
 
 export const selectIsPlaying = (state: WithPlayer): boolean =>
     state[PLAYER_SLICE].isPlaying;
+
+// нужна тем, кто хочет запустить трек «в контексте того, что уже играет»:
+// если трек лежит в этой очереди, после него продолжится она же
+export const selectQueue = (state: WithPlayer): PlayerTrack[] =>
+    state[PLAYER_SLICE].queue;
 
 export const selectHasNext = (state: WithPlayer): boolean =>
     state[PLAYER_SLICE].currentIndex + 1 < state[PLAYER_SLICE].queue.length;

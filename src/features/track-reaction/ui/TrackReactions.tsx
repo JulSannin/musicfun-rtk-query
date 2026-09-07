@@ -6,8 +6,10 @@ type Props = {
     // счётчик приходит сверху: он уже есть в ответе списка,
     // отдельный запрос за ним не нужен
     likesCount: number;
-    // дизлайков в списке треков нет: сервер отдаёт только likesCount,
-    // поэтому у кнопки дизлайка числа не будет — она показывает лишь состояние
+    // в списке треков сервер дизлайки не отдаёт, и тогда у кнопки не будет
+    // числа — она показывает лишь состояние. На странице трека поле есть,
+    // поэтому проп необязательный, как dislikesCount в ReactionCounters
+    dislikesCount?: number;
     currentUserReaction: CurrentUserReaction;
     // гостю сервер отвечает 401, поэтому кнопки ему выключаем;
     // сам счётчик лайков видят все
@@ -19,6 +21,7 @@ type Props = {
 export const TrackReactions = ({
     trackId,
     likesCount,
+    dislikesCount,
     currentUserReaction,
     canReact,
 }: Props) => {
@@ -54,7 +57,7 @@ export const TrackReactions = ({
                     currentUserReaction === CurrentUserReaction.Dislike
                 }
             >
-                dislike
+                dislike {dislikesCount}
             </button>
         </div>
     );

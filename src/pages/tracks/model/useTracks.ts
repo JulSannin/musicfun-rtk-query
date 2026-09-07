@@ -1,24 +1,34 @@
 import { useState } from 'react';
 import {
+    DEFAULT_TRACK_SORT_BY,
+    DEFAULT_TRACK_SORT_DIRECTION,
     useFetchTracksInfiniteQuery,
     type TrackSortBy,
 } from '@/entities/track';
 import { useGetMeQuery } from '@/entities/profile';
-import type { PlayerTrack } from '@/entities/player';
+import { toPlayerTracks } from '@/widgets/player';
 import type { SortDirection, TagRef } from '@/shared/api';
-import { useDebounce, useInfiniteScroll } from '@/shared/lib';
+import { useDebounce, useInfiniteScroll, useTrackPanel } from '@/shared/lib';
 
 // владеет параметрами списка треков, бесконечным запросом
 // и наблюдателем за концом списка
 export const useTracks = () => {
+    // страница только открывает панель; рисует её app рядом с плеером,
+    // потому что подробности трека не привязаны к этой странице
+    const { openTrack } = useTrackPanel();
+
     // сырое значение инпута, нужно только для отрисовки поля
     const [search, setSearch] = useState<string>('');
 
     // значение для запроса: обновляется, когда человек перестал печатать
     const debouncedSearch = useDebounce(search);
 
-    const [sortBy, setSortBy] = useState<TrackSortBy>('publishedAt');
-    const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+    // умолчания те же, что просит плеер: так обе подписки попадают
+    // в одну запись кеша и запрос уходит один
+    const [sortBy, setSortBy] = useState<TrackSortBy>(DEFAULT_TRACK_SORT_BY);
+    const [sortDirection, setSortDirection] = useState<SortDirection>(
+        DEFAULT_TRACK_SORT_DIRECTION
+    );
     const [tags, setTags] = useState<TagRef[]>([]);
     const [onlyLikedByMe, setOnlyLikedByMe] = useState<boolean>(false);
     const [onlyMine, setOnlyMine] = useState<boolean>(false);
@@ -91,32 +101,9 @@ export const useTracks = () => {
 
     // очередь для плеера: снимки, а не ссылки на кеш — запись fetchTracks живёт
     // под своим набором аргументов и пропадёт после смены фильтров, а начатый
-    // трек обязан доиграть. Собирается здесь, потому что тут уже разобраны
-    // артисты из included, а плеер про формат ответа знать не должен
-    const queue: PlayerTrack[] = items.flatMap(({ track, artistNames }) => {
-        const audio = track.attributes.attachments.at(0);
-
-        // трек без mp3 в очередь не берём: на нём автопереход встал бы намертво
-        if (!audio) return [];
-
-        const covers = track.attributes.images.main;
-
-        return [
-            {
-                id: track.id,
-                title: track.attributes.title,
-                artistNames,
-                url: audio.url,
-                duration: track.attributes.duration,
-                // в плеере картинка размером с иконку: оригинал тут лишний вес,
-                // но если сервер отдал только его — берём что есть
-                coverUrl: (
-                    covers?.find((img) => img.type === 'thumbnail') ??
-                    covers?.at(0)
-                )?.url,
-            },
-        ];
-    });
+    // трек обязан доиграть. Сборку держит виджет плеера: он же подставляет
+    // себе очередь при старте приложения, и копии этой логики быть не должно
+    const queue = data ? toPlayerTracks(data.pages) : [];
 
     const { observerRef } = useInfiniteScroll({
         hasNextPage,
@@ -127,6 +114,7 @@ export const useTracks = () => {
     return {
         items,
         queue,
+        onTrackSelect: openTrack,
         isLoading,
         isError,
         // список меняется целиком только при смене фильтров; подгрузка страницы

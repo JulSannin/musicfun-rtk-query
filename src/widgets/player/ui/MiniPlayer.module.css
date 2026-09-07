@@ -35,6 +35,22 @@
     white-space: nowrap;
 }
 
+/* название — кнопка, а не текст: по нему раскрываются подробности трека.
+   display: block с максимальной шириной нужен, чтобы у кнопки работало
+   многоточие — инлайновая кнопка растянулась бы по содержимому */
+.title {
+    display: block;
+    max-width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .artists {
     font-size: 12px;
     opacity: 0.7;
