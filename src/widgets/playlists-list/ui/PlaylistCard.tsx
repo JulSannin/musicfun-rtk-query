@@ -3,6 +3,8 @@ import { PlaylistCover, PlaylistInfo } from '@/entities/playlist';
 import { PlaylistCoverActions } from '@/features/playlist-cover';
 import { DeletePlaylistButton } from '@/features/playlist-delete';
 import { PlaylistReactions } from '@/features/playlist-reaction';
+import { playlistPath } from '@/shared/config';
+import s from './PlaylistCard.module.css';
 
 type Props = {
     // тип берем от списка, а не от карточки: данные приходят из fetchPlaylists
@@ -31,18 +33,24 @@ export const PlaylistCard = ({
     onEdit,
 }: Props) => {
     return (
-        <>
+        <div className={s.card}>
             {/* обложку и название видят все, действия над плейлистом — только владелец */}
             {/* прячем не ради безопасности: на чужой плейлист бэкенд всё равно ответит 403 */}
             <PlaylistCover images={playlist.attributes.images} />
             {isOwner && (
-                <PlaylistCoverActions
-                    playlistId={playlist.id}
-                    images={playlist.attributes.images}
-                />
+                <div className={s.actions}>
+                    <PlaylistCoverActions
+                        playlistId={playlist.id}
+                        images={playlist.attributes.images}
+                    />
+                </div>
             )}
 
             <PlaylistInfo
+                // название ведёт на страницу плейлиста, а CSS растягивает эту
+                // ссылку на всю карточку — кликом открывается вся карточка.
+                // Адрес собирает карточка, сама энтити про роутер не знает
+                to={playlistPath(playlist.id)}
                 title={playlist.attributes.title}
                 authorName={playlist.attributes.user.name}
                 tracksCount={playlist.attributes.tracksCount}
@@ -50,23 +58,29 @@ export const PlaylistCard = ({
                 tagNames={playlist.attributes.tags.map((tag) => tag.name)}
             />
 
-            {/* счётчики видит любой, кнопки активны только у залогиненного */}
-            <PlaylistReactions
-                playlistId={playlist.id}
-                likesCount={playlist.attributes.likesCount}
-                dislikesCount={playlist.attributes.dislikesCount}
-                currentUserReaction={playlist.attributes.currentUserReaction}
-                canReact={canReact}
-            />
+            <div className={s.actions}>
+                {/* счётчики видит любой, кнопки активны только у залогиненного */}
+                <PlaylistReactions
+                    playlistId={playlist.id}
+                    likesCount={playlist.attributes.likesCount}
+                    dislikesCount={playlist.attributes.dislikesCount}
+                    currentUserReaction={
+                        playlist.attributes.currentUserReaction
+                    }
+                    canReact={canReact}
+                />
 
-            {isOwner && (
-                <>
-                    {/* id подставляем здесь: наверху знают только "какой-то плейлист", */}
-                    {/* а карточка знает, какой именно */}
-                    <button onClick={() => onEdit(playlist.id)}>update</button>
-                    <DeletePlaylistButton playlistId={playlist.id} />
-                </>
-            )}
-        </>
+                {isOwner && (
+                    <>
+                        {/* id подставляем здесь: наверху знают только "какой-то плейлист", */}
+                        {/* а карточка знает, какой именно */}
+                        <button onClick={() => onEdit(playlist.id)}>
+                            update
+                        </button>
+                        <DeletePlaylistButton playlistId={playlist.id} />
+                    </>
+                )}
+            </div>
+        </div>
     );
 };
