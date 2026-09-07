@@ -12,11 +12,7 @@ type Props = {
 // один трек в списке: название, автор и плеер
 // это entities: чистая презентация, действий над треком тут нет
 export const TrackItem = ({ track, artistNames }: Props) => {
-    const { title, user, attachments, duration, isPublished } =
-        track.attributes;
-
-    // mp3 может быть еще не загружен, тогда attachments пустой
-    const audio = attachments.at(0);
+    const { title, user, duration, isPublished } = track.attributes;
 
     return (
         <div className={s.item}>
@@ -34,8 +30,10 @@ export const TrackItem = ({ track, artistNames }: Props) => {
                 {/* черновик виден только своему автору, но пометка нужна ему явно */}
                 {!isPublished && <p>draft</p>}
             </div>
-            {/* controls обязателен: без него плеер не рисуется вообще */}
-            {audio ? <audio controls src={audio.url} /> : <span>no file</span>}
+            {/* своего <audio> здесь больше нет: элемент в приложении один,
+                внутри MiniPlayer. Два плеера означали бы два источника правды —
+                нативный в строке и глобальный — и они перебивали бы друг друга.
+                Запуск делает PlayTrackButton из features/track-play */}
         </div>
     );
 };

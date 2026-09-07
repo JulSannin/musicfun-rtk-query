@@ -4,6 +4,7 @@ import {
     type TrackSortBy,
 } from '@/entities/track';
 import { useGetMeQuery } from '@/entities/profile';
+import type { PlayerTrack } from '@/entities/player';
 import type { SortDirection, TagRef } from '@/shared/api';
 import { useDebounce, useInfiniteScroll } from '@/shared/lib';
 
@@ -88,6 +89,35 @@ export const useTracks = () => {
                     .filter((name): name is string => Boolean(name)),
             })) ?? [];
 
+    // очередь для плеера: снимки, а не ссылки на кеш — запись fetchTracks живёт
+    // под своим набором аргументов и пропадёт после смены фильтров, а начатый
+    // трек обязан доиграть. Собирается здесь, потому что тут уже разобраны
+    // артисты из included, а плеер про формат ответа знать не должен
+    const queue: PlayerTrack[] = items.flatMap(({ track, artistNames }) => {
+        const audio = track.attributes.attachments.at(0);
+
+        // трек без mp3 в очередь не берём: на нём автопереход встал бы намертво
+        if (!audio) return [];
+
+        const covers = track.attributes.images.main;
+
+        return [
+            {
+                id: track.id,
+                title: track.attributes.title,
+                artistNames,
+                url: audio.url,
+                duration: track.attributes.duration,
+                // в плеере картинка размером с иконку: оригинал тут лишний вес,
+                // но если сервер отдал только его — берём что есть
+                coverUrl: (
+                    covers?.find((img) => img.type === 'thumbnail') ??
+                    covers?.at(0)
+                )?.url,
+            },
+        ];
+    });
+
     const { observerRef } = useInfiniteScroll({
         hasNextPage,
         isFetching,
@@ -96,6 +126,7 @@ export const useTracks = () => {
 
     return {
         items,
+        queue,
         isLoading,
         isError,
         // список меняется целиком только при смене фильтров; подгрузка страницы

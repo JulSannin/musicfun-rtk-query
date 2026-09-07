@@ -42,7 +42,7 @@ React 19 + Vite + RTK Query + react-router (declarative). Алиас `@` → `sr
 
 ### RTK Query: один API на приложение
 
-[src/shared/api/baseApi.ts](src/shared/api/baseApi.ts) — единственный `createApi` с пустыми `endpoints`. Слайсы дописывают свои эндпоинты через `injectEndpoints`, а типы тегов — через `enhanceEndpoints({ addTagTypes: [...] })` рядом с эндпоинтами, которые их используют (см. [playlistsApi.ts](src/entities/playlist/api/playlistsApi.ts)). В store подключён только `baseApi.reducer` и `baseApi.middleware`, поэтому новый слайс с эндпоинтами не требует правок в [store.ts](src/app/model/store.ts).
+[src/shared/api/baseApi.ts](src/shared/api/baseApi.ts) — единственный `createApi` с пустыми `endpoints`. Слайсы дописывают свои эндпоинты через `injectEndpoints`, а типы тегов — через `enhanceEndpoints({ addTagTypes: [...] })` рядом с эндпоинтами, которые их используют (см. [playlistsApi.ts](src/entities/playlist/api/playlistsApi.ts)). Из запросов в store подключены только `baseApi.reducer` и `baseApi.middleware` (рядом лежит ещё редьюсер плеера, см. ниже), поэтому новый слайс с эндпоинтами не требует правок в [store.ts](src/app/model/store.ts).
 
 Соглашения:
 
@@ -78,7 +78,15 @@ OAuth-логин с парой access/refresh токенов. Три файла 
 - [baseQuery.ts](src/shared/api/baseQuery.ts) — «голый» `fetchBaseQuery`, вешает `API-KEY` и `Authorization`. На эндпоинте `login` заголовок с токеном намеренно не ставится: это обмен OAuth-кода на новую пару, и старый протухший `accessToken` из `localStorage` заставляет бэкенд отвечать на login 401.
 - [baseQueryWithReauth.ts](src/shared/api/baseQueryWithReauth.ts) — обёртка, которую и получает `baseApi`.
 
-Флоу логина: `LoginButton` открывает popup на `auth/oauth-redirect`, [OAuthCallbackPage](src/pages/oauth-callback/ui/OAuthCallbackPage.tsx) достаёт `code` из query и отдаёт его через `postMessage` в `window.opener`, `LoginButton` проверяет `event.origin`, сразу отписывается от `message` (иначе повторное сообщение логинит дважды) и зовёт `login`. Токены кладутся в `localStorage` в `onQueryStarted` мутации `login`, чистятся в `logout` — в `finally`, чтобы разлогин срабатывал даже при неудачном сетевом `auth/logout`.
+Флоу логина: `LoginButton` открывает popup на `auth/oauth-redirect`, [OAuthCallbackPage](src/pages/oauth-callback/ui/OAuthCallbackPage.tsx) достаёт `code` из query и отдаёт его через `postMessage` в `window.opener`, `LoginButton` ловит сообщение и зовёт `login`. Токены кладутся в `localStorage` в `onQueryStarted` мутации `login`, чистятся в `logout` — в `finally`, чтобы разлогин срабатывал даже при неудачном сетевом `auth/logout`.
+
+Обмен сообщениями между окнами выглядит просто, но каждая строка вокруг него закрывает свою дыру, и «упростить» их нельзя:
+
+- Слушатель `message` живёт ровно одну попытку входа: он вешается с `{ signal }` от `AbortController`, который лежит в `attemptRef` и обрывается в трёх местах — при получении кода, при повторном клике и при размонтировании. Popup можно закрыть, не залогинившись, и тогда слушатель той попытки так и висит на `window`; без `abort` второй клик добавил бы второй слушатель, один пришедший `code` вызвал бы оба, и поверх удачного входа лёг бы тост с 400 — код уже использован.
+- `targetOrigin` в `postMessage` конкретный (`VITE_DOMAIN_ADDRESS`), а не `'*'`: с `'*'` OAuth-код ушёл бы любому окну, которое нас открыло. На принимающей стороне симметрично проверяется `event.origin`.
+- `(event.data ?? {})` при деструктуризации: `postMessage(null)` со своего же origin бросил бы `TypeError` прямо в обработчике.
+
+О том, что состояние входа поменялось, остальное приложение узнаёт через тег `Auth`: его отдаёт `getMe`, а `login` его инвалидирует — так шапка перерисовывается с логином без ручного дёрганья. При успешном `logout` (и только там) дополнительно вызывается `dispatch(baseApi.util.resetApiState())`: чужой кеш — свои плейлисты, реакции, `getMe` — после выхода показывать нельзя. Это ровно та строка, которой нет в ветке неудачного рефреша, и путать эти два места нельзя: там она даёт бесконечный цикл (см. ниже), здесь она обязательна.
 
 Рефреш в `baseQueryWithReauth` — стандартная схема RTK Query с `Mutex` из `async-mutex`: параллельные запросы ждут `mutex.waitForUnlock()`, рефреш делает только первый поймавший 401, остальные после разблокировки повторяют свой запрос. Тонкости, которые легко сломать:
 
@@ -90,6 +98,8 @@ OAuth-логин с парой access/refresh токенов. Три файла 
 ### Обработка ошибок
 
 [handleErrors.ts](src/shared/api/handleErrors.ts) — единая точка показа ошибок сервера, вызывается из [baseQueryWithReauth.ts](src/shared/api/baseQueryWithReauth.ts) на каждый `result.error` кроме 401, точечно перехватывать ошибки в слайсах не нужно. Формат тела ответа зависит от статуса (JSON:API `{ errors: [{ detail }] }` на 400/403, `{ error }` на 404, `{ message }` на 429), поэтому разбор идёт через `switch (error.status)`; у 409 тела в спеке нет вообще — сначала пробуем тот же JSON:API, иначе свой текст, сырой ответ пользователю не показываем. 5xx показываются одинаковым текстом без содержимого ответа — там может быть стектрейс или внутренние пути. Сообщения про `refreshToken` в 400/403 глушатся — это ожидаемый протухший токен, а не ошибка пользователя. Длинные `detail` режет `trimToMaxLength`: на «название длиннее 100 символов» сервер возвращает вместе с текстом само значение поля, и тост разъезжается. Тосты — через [toast.ts](src/shared/lib/toast.ts) (`errorToast`/`successToast`).
+
+Тост — не единственный способ поговорить с пользователем: на разрушающих действиях (удалить плейлист, удалить обложку) стоит нативный `confirm()`, и это осознанно. Тост уведомляет постфактум, а здесь нужен ответ **до** запроса, иначе отменять уже нечего — восстановления удалённого плейлиста в API нет.
 
 Клиентские проверки до запроса `handleErrors` не видит — их тост показывается руками. Так сделана проверка картинки в [validateImageFile.ts](src/shared/lib/validateImageFile.ts): `validateImage(file, rules)` возвращает текст ошибки или `null`, вызывающий код сам зовёт `errorToast`. Ограничения лежат там же отдельными объектами (`PLAYLIST_COVER_RULES` — 1 МБ, квадрат, от 500px по высоте; `TRACK_COVER_RULES` — 100 КБ, обложка трека), потому что принадлежат API, а не конкретной кнопке; `ALLOWED_IMAGE_TYPES` заодно подставляется в `accept` у `<input type="file">`. Функция асинхронная: габариты известны только после `createImageBitmap`, поэтому файл декодируется — но только если правила про габариты спрашивают (у трека не спрашивают), и кадр обязательно закрывается через `bitmap.close()` в `finally`, он живёт вне сборщика мусора JS.
 
@@ -128,9 +138,14 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 
 ### Состояние страниц
 
-Параметры списка и сам запрос живут в хуке `pages/<page>/model/use<Page>.ts`, компонент страницы отвечает только за разметку (см. [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts), [useTracks.ts](src/pages/tracks/model/useTracks.ts)). Redux-слайсов для UI-состояния нет — только локальный `useState` и кеш RTK Query.
+Параметры списка и сам запрос живут в хуке `pages/<page>/model/use<Page>.ts`, компонент страницы отвечает только за разметку (см. [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts), [useTracks.ts](src/pages/tracks/model/useTracks.ts)). UI-состояние страниц — это локальный `useState` и кеш RTK Query; единственный Redux-слайс не про запросы — плеер (см. ниже), и заводился он ровно потому, что его состояние живёт дольше любой страницы.
 
-Две разные модели пагинации живут рядом намеренно: плейлисты листаются номерами страниц (`query` + `Pagination`), треки — курсором через `build.infiniteQuery` (список пополняется, offset-пагинация давала бы дубли).
+Две разные модели пагинации живут рядом намеренно: плейлисты листаются номерами страниц (`query` + `Pagination`), треки — курсором через `build.infiniteQuery` (список пополняется, offset-пагинация давала бы дубли). У курсорного варианта три места, где ошибка не видна ни в типах, ни в консоли:
+
+- В параметрах обязателен `paginationType: 'cursor'`. Без него сервер отвечает обычной страницей, `meta.nextCursor` всегда `null`, `hasNextPage` сразу `false` — список просто не догружается, и выглядит это как «данных больше нет».
+- `pageSize` зашит в сам эндпоинт (10, сервер принимает до 20), а фильтры раскладываются в `params` **первыми** (`...queryArg`, затем `paginationType`/`pageSize`/`cursor`): иначе аргумент хука перебил бы постраничные параметры.
+- Хук называется `useFetchTracksInfiniteQuery` — RTK Query собирает имя как `use` + имя эндпоинта + `InfiniteQuery`, привычного `useFetchTracksQuery` не существует.
+- В курсорном режиме сервер не считает общее количество: `meta.totalCount` и `meta.pagesCount` приходят `null` (в типах они честно `number | null`). Счётчик «найдено N треков» из меты не сделать — только из длины уже загруженного, а это не то же самое.
 
 Списки фильтруются одинаково в [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts) и [useTracks.ts](src/pages/tracks/model/useTracks.ts), аргументы запроса собираются по четырём правилам:
 
@@ -151,6 +166,30 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 - `skip` нужен и там, где аргумент есть, но пустой: у `searchTags` параметр `search` обязателен по спеке, и с пустой строкой сервер ответит 400 — [TagPicker](src/entities/tag/ui/TagPicker.tsx) не отправляет запрос, пока в поле ничего не набрано. Эндпоинта «отдай все теги» в API нет вообще, только поиск по подстроке.
 - Номер страницы, съехавший за `pagesCount` после удаления, чинится прямо на рендере (`setPage` в теле [usePlaylists.ts](src/pages/playlists/model/usePlaylists.ts)), а не в `useEffect`: React выбрасывает такой проход до коммита, лишнего запроса за несуществующую страницу не будет.
 
+### Формы
+
+react-hook-form используется только в формах плейлиста ([CreatePlaylistForm](src/features/playlist-create/ui/CreatePlaylistForm.tsx), [UpdatePlaylistForm](src/features/playlist-update/ui/UpdatePlaylistForm.tsx)); фильтры списков живут на обычном `useState`. Состояние формы (`useForm`) остаётся в фиче, а поля вместе с правилами валидации — в [PlaylistFormFields](src/entities/playlist/ui/PlaylistFormFields.tsx) из `entities`, куда вниз уходят `register` и `errors` (фича не может импортировать фичу, см. FSD выше).
+
+- `PlaylistFormValues` — это тип **полей**, а не тип запроса: инпут всегда отдаёт строку. Перекладывание в аргументы мутации делает `onSubmit`, и там же живут две вещи, которые сервер различает: `description.trim() || null` (пустая строка и «нет описания» для бэкенда разное) и `title.trim()` (строку из пробелов сервер считает непустым названием).
+- Правила `register` дублируют ограничения сервера и берут числа из констант [playlistForm.ts](src/entities/playlist/model/playlistForm.ts) — та же константа подставляется и в текст ошибки. Клиентская проверка не отменяет серверную: на превышение длины прилетит 400, и его покажет `handleErrors`.
+- `reset()` зовётся только в `.then()` после успеха, форма редактирования по той же причине закрывается тоже только на успех: при ошибке набранное должно остаться на экране, чтобы его можно было поправить.
+- Внутри `<form>` любая кнопка без `type` — это submit. Отсюда `type="button"` на «cancel» и, что менее очевидно, на чипах и подсказках в [TagPicker](src/entities/tag/ui/TagPicker.tsx): он сам формы не содержит, но рендерится внутри формы редактирования, и без `type` клик по тегу отправлял бы плейлист.
+- Теги в форме редактирования идут мимо react-hook-form (`register` работает со строкой инпута, а тут массив объектов) и хранятся отдельным `useState<TagRef[] | null>` — про `null` как «не трогали» см. `react-hooks/set-state-in-effect` выше.
+- Мутация `updatePlaylist` принимает `tags: TagRef[]` рядом с `attributes` — на сервер уходят только `tagIds` из `attributes`, а полные теги нужны оптимистичному патчу: в кеше списка лежат `TagRef` с именами, и взять имя патчу больше неоткуда.
+
+### Плеер
+
+Мини-плеер — единственное состояние в проекте, которое не укладывается ни в `useState` страницы, ни в кеш RTK Query, потому что переживает смену роута. Отсюда три решения, которые нельзя менять по отдельности:
+
+- `<audio>` в приложении ровно один и живёт в [MiniPlayer](src/widgets/player/ui/MiniPlayer.tsx), который [App.tsx](src/app/App.tsx) рендерит рядом с `Routing`, а не внутри страницы: внутри он размонтировался бы на каждом переходе по ссылке и обрывал звук. Поэтому же у [TrackItem](src/entities/track/ui/TrackItem.tsx) своего `<audio controls>` больше нет — два плеера означали бы два источника правды.
+- Полоса плеера видна всегда, даже когда ничего не выбрано: это часть каркаса, как шапка. `null` вместо неё возвращать не надо — тогда `<audio>` размонтируется, и громкость, выставленная прямо на элементе, сбросится в 1. В пустом состоянии кнопки погашены, а вместо названия стоит подпись: полоса с одними неактивными кнопками читается как поломка. У `src` при этом строго `track?.url`, а не `''` — пустую строку браузер разрешает в адрес самой страницы и сразу бросает `error`.
+- Слайс [playerSlice.ts](src/entities/player/model/playerSlice.ts) держит только сериализуемое: очередь снимков, индекс и `isPlaying`. Сам элемент — в `useRef` виджета (`serializableCheck` иначе заругается, и по делу), а `currentTime` — в локальном `useState`: `timeupdate` стреляет несколько раз в секунду, и dispatch на каждый тик перерисовывал бы всех подписчиков. В сторе живут только события, которые видит кнопка в списке.
+- В очередь уходят **снимки** (`PlayerTrack`: id, название, имена артистов, url, длительность, обложка), а не ссылки на кеш. Причин три: `refetchOnFocus` заменяет объект трека при возврате на вкладку; запись `fetchTracks` лежит под своим набором аргументов и после смены фильтров может исчезнуть; а в списке треков плейлиста форма атрибутов вообще другая. Собирает снимки [useTracks.ts](src/pages/tracks/model/useTracks.ts) — там уже разобраны артисты из `included`, и плеер про формат ответа JSON:API не знает ничего.
+
+Селекторы слайса типизированы своим куском состояния (`Record<typeof PLAYER_SLICE, PlayerState>`), а не `RootState`: `entities` не имеет права импортировать `app`, а стор подходит структурно. Имя ключа в сторе берётся из той же константы `PLAYER_SLICE` — рассинхрон ключа и селекторов TS иначе не поймает.
+
+Мелочи, на которых легко споткнуться: трек без mp3 (`attachments` пуст) в очередь не берётся вообще, иначе автопереход встанет на нём намертво; `audio.play()` реджектится `AbortError`, если `src` сменился до старта (быстрые клики по разным трекам), поэтому `.catch` обязателен; сброс прогресса сделан на событии `onLoadStart`, а не в эффекте — иначе это сеттер внутри `useEffect`, а он в проекте запрещён правилом линтера. И `audio.duration` берётся только через `Number.isFinite`: у mp3 без длительности в заголовках браузер отдаёт `Infinity`, ползунок с таким `max` перестаёт двигаться, а `formatDuration(Infinity)` печатает `Infinity:NaN:NaN` (проверено, `NaN` функция гасит, `Infinity` — нет).
+
 ### Списки и владение
 
 [PlaylistsList](src/widgets/playlists-list/ui/PlaylistsList.tsx) — один виджет на две страницы: `/playlists` (поиск + пагинация) и `/profile` (только свои). Различия задаются пропсами (`isFetching`, `emptyText`), а не копией разметки.
@@ -166,6 +205,10 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 
 Отсюда следствие, о котором легко забыть: раз `fetchTracks` и `fetchPlaylists` исключены, свой индикатор им обязателен, иначе смена фильтров выглядит зависанием. И у бесконечного списка условие не `isFetching`, а `isFetching && !isFetchingNextPage` (в [useTracks.ts](src/pages/tracks/model/useTracks.ts) отдаётся наружу как `isReloading`): при подгрузке следующей страницы `isFetching` тоже `true`, но список тогда не заменяется, а дополняется, и гасить его неправильно.
 
+Выбор между флагами тоже не произволен. Список гасится по `isFetching` (старые карточки остаются на экране, пока едет новая выдача), а вот там, где на экране одно значение или форма, берут `isLoading` — он `true` только на первой загрузке, и фоновый перезапрос не подменяет логин или заполненную форму на «Loading...» (см. [MainPage](src/pages/main/ui/MainPage.tsx), [UpdatePlaylistForm](src/features/playlist-update/ui/UpdatePlaylistForm.tsx)).
+
+Ещё одно правило разметки, общее для обеих страниц со списками: `SearchInput` стоит **выше** списка и вне веток `isLoading`/`isError`. Внутри условия он размонтируется на каждый запрос и теряет фокус — печатать в него становится невозможно.
+
 ### Пропсы компонентов
 
 Вниз передаются только те поля, которые компонент рисует, а не вся сущность: `PlaylistInfo` берёт `title`, `authorName`, `tracksCount`, `duration` и готовые имена тегов (`tagNames`, а не сами `TagRef`), `PlaylistCover` — одни `images`. По той же причине `TrackItem` получает `artistNames` готовым массивом: разбор `included` из ответа JSON API живёт в [useTracks.ts](src/pages/tracks/model/useTracks.ts), где виден весь ответ целиком. Целый объект принимает только тот компонент, который стоит на границе списка ([PlaylistCard](src/widgets/playlists-list/ui/PlaylistCard.tsx), [TrackItem](src/entities/track/ui/TrackItem.tsx)). Компоненты из `shared/ui` про запросы не знают вообще — принимают значения и отдают колбэки.
@@ -174,10 +217,12 @@ ESLint: `@typescript-eslint/no-misused-promises` настроен с `checksVoid
 
 ### Что уже лежит в shared
 
-Прежде чем писать своё — эти пять вещей уже есть, и у каждой есть неочевидная деталь:
+Прежде чем писать своё — это уже есть, и у большинства есть неочевидная деталь:
 
+- [SearchInput](src/shared/ui/SearchInput/SearchInput.tsx) — `type="search"` ради нативного крестика очистки; про дебаунс и запросы не знает, дебаунсит вызывающий хук.
+- [LinearProgress](src/shared/ui/LinearProgress/LinearProgress.tsx) — полоса загрузки, используется на двух уровнях: глобально в [App.tsx](src/app/App.tsx) и локально поверх приглушённого списка в [PlaylistsList](src/widgets/playlists-list/ui/PlaylistsList.tsx).
 - [Select](src/shared/ui/Select/Select.tsx) — дженерик по `T extends string | number`. Он ищет опцию по строковому представлению и отдаёт наверх **исходное** значение, а не строку из DOM: иначе union вроде `'addedAt' | 'likesCount'` пришлось бы возвращать через `as`, и опечатка прошла бы молча.
-- [Pagination](src/shared/ui/Pagination/Pagination.tsx) — держит свой `PAGE_SIZE_OPTIONS` (8/16/32/40). В свагере у `pageSize` стоит `maximum: 20`, но ограничение устаревшее, бэкенд принимает и 40. Номера страниц прячутся при `pagesCount <= 1`, а селектор размера остаётся — иначе из `pageSize: 32` не выбраться.
+- [Pagination](src/shared/ui/Pagination/Pagination.tsx) — держит свой `PAGE_SIZE_OPTIONS` (8/16/32/40). В свагере у `pageSize` стоит `maximum: 20`, но ограничение устаревшее, бэкенд принимает и 40. Номера страниц прячутся при `pagesCount <= 1`, а селектор размера остаётся — иначе из `pageSize: 32` не выбраться. Текущая страница помечена `aria-current="page"`, но **не** `disabled`: заблокированная кнопка выпала бы из обхода по Tab. Тот же приём у кнопок реакций — состояние передаётся через `aria-pressed`, а `disabled` означает только «нельзя, ты гость».
 - [useInfiniteScroll](src/shared/lib/hooks/useInfiniteScroll.ts) + [LoadingTrigger](src/shared/ui/LoadingTrigger/LoadingTrigger.tsx) — наблюдатель и маячок для курсорных списков. Обе проверки (`hasNextPage && !isFetching`) обязательны, наблюдатель срабатывает и во время загрузки. В маячке распорка в 20px не декоративная: у элемента нулевой высоты `IntersectionObserver` не сработает и подгрузка не запустится.
 - [useDebounce](src/shared/lib/hooks/useDebounce.ts) — 500 мс по умолчанию.
 - [formatDuration](src/shared/lib/formatDuration.ts) — сервер отдаёт длительность секундами и у трека, и у плейлиста целиком; час в строке появляется, только если он есть.

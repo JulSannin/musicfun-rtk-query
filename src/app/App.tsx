@@ -1,4 +1,5 @@
 import { Header } from '@/widgets/header';
+import { MiniPlayer } from '@/widgets/player';
 import { Routing } from './routing/Routing';
 import { useGlobalLoading } from './model/useGlobalLoading';
 import { LinearProgress } from '@/shared/ui';
@@ -20,6 +21,9 @@ function App() {
             <div className={s.layout}>
                 <Routing />
             </div>
+            {/* плеер стоит вне layout и рядом с Routing, а не внутри страницы: */}
+            {/* при переходе по ссылке страница размонтируется, и звук оборвался бы */}
+            <MiniPlayer />
             {/* контейнер тостов один на все приложение и стоит вне layout: */}
             {/* toast() зовется из любого компонента, а рисуется всегда здесь */}
             {/* тема задается один раз тут, а не в каждом вызове toast */}

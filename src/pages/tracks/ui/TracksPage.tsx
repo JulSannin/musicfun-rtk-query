@@ -1,5 +1,6 @@
 import { TrackItem } from '@/entities/track';
 import { TagPicker } from '@/entities/tag';
+import { PlayTrackButton } from '@/features/track-play';
 import { TrackReactions } from '@/features/track-reaction';
 import {
     LinearProgress,
@@ -15,6 +16,7 @@ import s from './TracksPage.module.css';
 export const TracksPage = () => {
     const {
         items,
+        queue,
         isLoading,
         isError,
         isReloading,
@@ -121,6 +123,13 @@ export const TracksPage = () => {
                     // презентация из entities и действие из features склеиваются
                     // здесь: сам TrackItem импортировать фичу не имеет права
                     <div className={s.row} key={track.id}>
+                        {/* очередь у всех строк одна и та же: с какого трека
+                            ни начали, дальше плеер идёт по видимому списку */}
+                        <PlayTrackButton
+                            trackId={track.id}
+                            queue={queue}
+                            canPlay={track.attributes.attachments.length > 0}
+                        />
                         <TrackItem track={track} artistNames={artistNames} />
                         <TrackReactions
                             trackId={track.id}
