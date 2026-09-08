@@ -151,6 +151,30 @@ type TrackDetailsAttributes = {
     currentUserReaction: CurrentUserReaction;
 };
 
+// ==================== PUT /playlists/tracks/{trackId} ====================
+
+// то, что реально принимает мутация правки трека
+// все поля обязательные, и это не придирка типов: сервер заменяет трек
+// целиком, поэтому отправить одно название нельзя — остальное затрётся
+export type UpdateTrackAttributes = {
+    title: string;
+    // пустая строка и «нет текста» для сервера разное, отсюда null
+    lyrics: string | null;
+    // ISO 8601; в форме поле хранится как yyyy-MM-dd
+    releaseDate: string | null;
+    // по 0–5 штук; пустой массив означает «снять все»
+    tagIds: string[];
+    artistsIds: string[];
+};
+
+// тело запроса с конвертом JSON API; наружу из слайса не уходит
+export type UpdateTrackRequestPayload = {
+    data: {
+        type: 'tracks';
+        attributes: UpdateTrackAttributes;
+    };
+};
+
 // ==================== GET /playlists/{playlistId}/tracks ====================
 // пагинации нет ни в каком виде: в плейлист влезает не больше 10 треков,
 // и query-параметров у этой ручки не существует

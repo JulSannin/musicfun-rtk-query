@@ -42,6 +42,9 @@ export const useTrackDetails = (trackId: string) => {
         attributes,
         playerTrack,
         canPlay: Boolean(audio),
+        // обложку меняет только владелец трека; прячем действия ради
+        // интерфейса, а не безопасности: на чужой трек сервер ответит 403
+        isOwner: Boolean(me) && attributes?.user.id === me?.userId,
         // реагировать может только залогиненный: гостю сервер ответит 401
         canReact: Boolean(me),
         // «нечего показать, и это не ошибка» — значит грузим.

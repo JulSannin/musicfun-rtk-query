@@ -1,6 +1,7 @@
 import { useSelector } from 'react-redux';
 import { selectQueue } from '@/entities/player';
 import { TrackCover } from '@/entities/track';
+import { TrackCoverActions } from '@/features/track-cover';
 import { PlayTrackButton } from '@/features/track-play';
 import { TrackReactions } from '@/features/track-reaction';
 import { formatDuration } from '@/shared/lib';
@@ -24,8 +25,15 @@ const formatDate = (value: string) => new Date(value).toLocaleDateString();
 // и сам ходит за данными; они доступны и гостю — на этой ручке
 // из защиты только API-KEY
 export const TrackDetails = ({ trackId, onClose }: Props) => {
-    const { attributes, playerTrack, canPlay, canReact, isLoading, isError } =
-        useTrackDetails(trackId);
+    const {
+        attributes,
+        playerTrack,
+        canPlay,
+        canReact,
+        isOwner,
+        isLoading,
+        isError,
+    } = useTrackDetails(trackId);
 
     // панель живёт над всеми страницами и очереди списка не видит, поэтому
     // запуск отсюда идёт «в контексте того, что уже играет»: если трек лежит
@@ -55,6 +63,15 @@ export const TrackDetails = ({ trackId, onClose }: Props) => {
             {attributes && (
                 <>
                     <TrackCover images={attributes.images} size="large" />
+
+                    {/* саму обложку видят все, включая гостя, а менять её
+                        может только владелец — как у плейлиста */}
+                    {isOwner && (
+                        <TrackCoverActions
+                            trackId={trackId}
+                            images={attributes.images}
+                        />
+                    )}
 
                     <h2>{attributes.title}</h2>
                     <p>Name: {attributes.user.name}</p>
