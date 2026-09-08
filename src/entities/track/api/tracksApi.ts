@@ -129,6 +129,13 @@ export const tracksApi = baseApi
                         cursor: pageParam,
                     },
                 }),
+
+                // единственный тег списка треков, и сбрасывает его только
+                // загрузка нового трека. Остальные мутации чинят кеш патчами
+                // именно поэтому: сброс этого тега перезапрашивает ВСЕ
+                // подгруженные страницы всех вариантов списка, и на каждый
+                // клик по лайку это было бы недопустимо дорого
+                providesTags: [{ type: 'Track', id: 'LIST' }],
             }),
             // GET запрос
             // подробности одного трека; доступен и гостю — на этой ручке
@@ -374,6 +381,36 @@ export const tracksApi = baseApi
                         // тост уже показал handleErrors, кеш мы не трогали
                     }
                 },
+            }),
+
+            // POST запрос
+            // создаёт трек из mp3; сервер отдаёт его целиком, как карточку
+            // трек появляется черновиком — публикуется отдельной ручкой
+            uploadTrack: build.mutation<
+                GetTrackDetailsOutput,
+                { title: string; file: File }
+            >({
+                query: ({ title, file }) => {
+                    const formData = new FormData();
+                    // имена полей из свагера: здесь title и file, а у обложки
+                    // того же трека поле называется cover — копипаст не сработает
+                    formData.append('title', title);
+                    formData.append('file', file);
+
+                    return {
+                        method: 'POST',
+                        url: 'playlists/tracks/upload',
+                        body: formData,
+                    };
+                },
+
+                // единственная мутация треков, которая сбрасывает тег, а не
+                // патчит кеш руками: куда сервер поставит новый трек в текущей
+                // сортировке, клиент не знает, а вставлять его наугад в начало
+                // нельзя — те же записи кеша держат и общий список /tracks,
+                // где чужому черновику не место. Загрузка редкая, один
+                // перезапрос за неё не жалко
+                invalidatesTags: [{ type: 'Track', id: 'LIST' }],
             }),
 
             // PUT запрос
@@ -709,4 +746,5 @@ export const {
     useUpdateTrackMutation,
     usePublishTrackMutation,
     useDeleteTrackMutation,
+    useUploadTrackMutation,
 } = tracksApi;

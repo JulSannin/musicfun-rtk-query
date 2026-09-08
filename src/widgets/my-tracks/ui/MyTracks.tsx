@@ -30,8 +30,8 @@ export const MyTracks = () => {
 
     return (
         <div>
-            <h2>My tracks</h2>
-
+            {/* заголовка нет: секцию называет вкладка на странице профиля,
+                второй раз повторять её здесь незачем */}
             {isError && <div>Failed to load tracks</div>}
             {isLoading && <div>Loading...</div>}
 

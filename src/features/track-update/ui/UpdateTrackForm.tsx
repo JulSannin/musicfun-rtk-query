@@ -3,9 +3,8 @@ import { useForm, type SubmitHandler } from 'react-hook-form';
 import { type TagRef } from '@/shared/api';
 import { TagPicker } from '@/entities/tag';
 import {
-    TRACK_LYRICS_MAX_LENGTH,
     TRACK_TAGS_MAX,
-    TRACK_TITLE_MAX_LENGTH,
+    TrackFormFields,
     useFetchTrackQuery,
     useUpdateTrackMutation,
     type TrackFormValues,
@@ -109,33 +108,9 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
         <form onSubmit={handleSubmit(onSubmit)}>
             <h3>Update track</h3>
 
-            <input
-                placeholder="title"
-                {...register('title', {
-                    required: 'Title is required',
-                    maxLength: {
-                        value: TRACK_TITLE_MAX_LENGTH,
-                        message: `Title must be ${TRACK_TITLE_MAX_LENGTH} characters or less`,
-                    },
-                })}
-            />
-            {errors.title && <span>{errors.title.message}</span>}
-
-            <textarea
-                placeholder="lyrics"
-                {...register('lyrics', {
-                    maxLength: {
-                        value: TRACK_LYRICS_MAX_LENGTH,
-                        message: `Lyrics must be ${TRACK_LYRICS_MAX_LENGTH} characters or less`,
-                    },
-                })}
-            />
-            {errors.lyrics && <span>{errors.lyrics.message}</span>}
-
-            <label>
-                release date
-                <input type="date" {...register('releaseDate')} />
-            </label>
+            {/* поля и правила лежат в entities: ограничения принадлежат API,
+                а не этой кнопке, и название общее с формой загрузки */}
+            <TrackFormFields register={register} errors={errors} />
 
             <TagPicker
                 value={tags}

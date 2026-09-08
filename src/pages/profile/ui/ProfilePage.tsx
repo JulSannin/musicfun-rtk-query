@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { Navigate } from 'react-router';
 import { CreatePlaylistForm } from '@/features/playlist-create';
+import { UploadTrackForm } from '@/features/track-upload';
 import { MyTracks } from '@/widgets/my-tracks';
 import { PlaylistsList } from '@/widgets/playlists-list';
 import { paths } from '@/shared/config';
@@ -11,8 +13,20 @@ import s from './ProfilePage.module.css';
 // правка и удаление: на общем списке /tracks им не место, там треки
 // в основном чужие
 export const ProfilePage = () => {
-    const { login, isUnauthorized, playlists, isLoading, isError } =
-        useProfile();
+    const {
+        login,
+        isUnauthorized,
+        tab,
+        onTabChange,
+        playlists,
+        isLoading,
+        isError,
+    } = useProfile();
+
+    // форма загрузки по умолчанию скрыта: на вкладке в первую очередь нужны
+    // свои треки, а не создание нового. Состояние страницы, поэтому обычный
+    // useState — как режим редактирования в списках
+    const [isUploadOpen, setIsUploadOpen] = useState(false);
 
     // разлогиненного тут держать нечего: auth/me отвечает 401,
     // и вместо своих плейлистов человек увидел бы пустую страницу
@@ -23,18 +37,78 @@ export const ProfilePage = () => {
     return (
         <>
             <h1>{login} page</h1>
+            {/* переключатель секций: кнопки, а не ссылки — адрес меняется
+                параметром, а не переходом на другой роут.
+                Активную не блокируем: disabled выкинул бы её из обхода по Tab,
+                состояние передаёт aria-pressed — тот же приём, что у пагинации */}
+            <div className={s.tabs}>
+                <button
+                    type="button"
+                    className={`${s.tab} ${tab === 'tracks' ? s.tabActive : ''}`}
+                    aria-pressed={tab === 'tracks'}
+                    onClick={() => onTabChange('tracks')}
+                >
+                    My tracks
+                </button>
+                <button
+                    type="button"
+                    className={`${s.tab} ${tab === 'playlists' ? s.tabActive : ''}`}
+                    aria-pressed={tab === 'playlists'}
+                    onClick={() => onTabChange('playlists')}
+                >
+                    My playlists
+                </button>
+            </div>
+
+            {/* в окне живёт только выбранная секция: невыбранная размонтирована,
+                её подписка снята и запрос за ней не уходит. Данные при этом
+                не пропадают сразу — запись кеша RTK Query живёт ещё минуту
+                (keepUnusedDataFor), поэтому быстрый возврат мгновенный
+                и без запроса */}
             <div className={s.container}>
-                {/* создавать плейлисты можно только у себя, поэтому форма здесь, а не на /playlists */}
-                <CreatePlaylistForm />
-                <PlaylistsList
-                    playlists={playlists}
-                    isLoading={isLoading}
-                    isError={isError}
-                    emptyText="You don't have any playlists yet"
-                />
-                {/* свои треки виджет грузит сам: страница отдаёт ему
-                    только место в разметке */}
-                <MyTracks />
+                {tab === 'tracks' ? (
+                    <>
+                        {/* загрузка всегда создаёт НОВЫЙ трек: догрузить mp3
+                            к существующему API не умеет вовсе. Поэтому форма
+                            прячется за кнопкой, а не висит над списком */}
+                        {isUploadOpen ? (
+                            <div>
+                                <UploadTrackForm
+                                    onUploaded={() => setIsUploadOpen(false)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUploadOpen(false)}
+                                >
+                                    cancel
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => setIsUploadOpen(true)}
+                            >
+                                + upload track
+                            </button>
+                        )}
+
+                        {/* свои треки виджет грузит сам: страница отдаёт ему
+                            только место в разметке */}
+                        <MyTracks />
+                    </>
+                ) : (
+                    <>
+                        {/* создавать плейлисты можно только у себя, поэтому
+                            форма здесь, а не на /playlists */}
+                        <CreatePlaylistForm />
+                        <PlaylistsList
+                            playlists={playlists}
+                            isLoading={isLoading}
+                            isError={isError}
+                            emptyText="You don't have any playlists yet"
+                        />
+                    </>
+                )}
             </div>
         </>
     );
