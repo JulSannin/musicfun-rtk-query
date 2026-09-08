@@ -7,7 +7,7 @@ import {
 } from '@/entities/track';
 import { useGetMeQuery } from '@/entities/profile';
 import { toPlayerTracks } from '@/entities/player';
-import type { SortDirection, TagRef } from '@/shared/api';
+import type { ArtistRef, SortDirection, TagRef } from '@/shared/api';
 import { useDebounce, useInfiniteScroll, useTrackPanel } from '@/shared/lib';
 
 // владеет параметрами списка треков, бесконечным запросом
@@ -30,6 +30,7 @@ export const useTracks = () => {
         DEFAULT_TRACK_SORT_DIRECTION
     );
     const [tags, setTags] = useState<TagRef[]>([]);
+    const [artists, setArtists] = useState<ArtistRef[]>([]);
     const [onlyLikedByMe, setOnlyLikedByMe] = useState<boolean>(false);
     const [onlyMine, setOnlyMine] = useState<boolean>(false);
 
@@ -42,6 +43,12 @@ export const useTracks = () => {
     const canFilterByUser = Boolean(me);
     const likedFilter = canFilterByUser && onlyLikedByMe;
     const mineFilter = canFilterByUser && onlyMine;
+
+    // сам запрос списка фильтр по артистам разрешает и гостю, но искать
+    // артистов гость не может: artists/search отвечает 401 (проверено).
+    // Поэтому пикер прячем, а выбранных заодно гасим — иначе после разлогина
+    // остался бы включённый фильтр, который нечем снять
+    const artistsFilter = canFilterByUser ? artists : [];
 
     const {
         data,
@@ -58,6 +65,9 @@ export const useTracks = () => {
             sortBy,
             sortDirection,
             tagsIds: tags.length ? tags.map((tag) => tag.id) : undefined,
+            artistsIds: artistsFilter.length
+                ? artistsFilter.map((artist) => artist.id)
+                : undefined,
             // false тоже ушёл бы в урл и завёл лишнюю запись кеша
             onlyLikedByMe: likedFilter || undefined,
             // includeDrafts работает только в паре с собственным userId,
@@ -127,6 +137,7 @@ export const useTracks = () => {
         sortBy,
         sortDirection,
         tags,
+        artists: artistsFilter,
         onlyLikedByMe: likedFilter,
         onlyMine: mineFilter,
         canFilterByUser,
@@ -141,6 +152,7 @@ export const useTracks = () => {
         onSortByChange: setSortBy,
         onSortDirectionChange: setSortDirection,
         onTagsChange: setTags,
+        onArtistsChange: setArtists,
         onOnlyLikedByMeChange: setOnlyLikedByMe,
         onOnlyMineChange: setOnlyMine,
     };

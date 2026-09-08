@@ -437,29 +437,23 @@ export const tracksApi = baseApi
                     try {
                         const { data } = await queryFulfilled;
 
-                        const patches = [
-                            // в списках из изменившегося видно только название:
-                            // ни текста, ни тегов, ни даты релиза там нет
-                            ...trackListPatches(
-                                lifecycleApi.getState(),
-                                trackId,
-                                (attributes) => {
-                                    attributes.title =
-                                        data.data.attributes.title;
-                                }
-                            ),
-                            // а в карточке меняется всё сразу, и ответ уже
-                            // содержит трек целиком — кладём его как есть
+                        // карточку чиним ответом: он содержит трек целиком,
+                        // и перезапрашивать её незачем
+                        dispatch(
                             trackDetailsPatch(trackId, (draft) => {
                                 draft.data = data.data;
-                            }),
-                        ];
-
-                        patches.forEach((patch) => dispatch(patch));
+                            })
+                        );
                     } catch {
                         // тост уже показал handleErrors, кеш мы не трогали
                     }
                 },
+
+                // списки сбрасываем тегом, а не патчим руками: имена артистов
+                // лежат не в атрибутах трека, а в included страницы, и точечная
+                // правка там получается хрупкой. Правка трека — действие редкое
+                // и осознанное, один перезапрос за неё не жалко
+                invalidatesTags: [{ type: 'Track', id: 'LIST' }],
             }),
 
             // POST запрос

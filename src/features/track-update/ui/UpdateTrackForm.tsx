@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
-import { type TagRef } from '@/shared/api';
+import { type ArtistRef, type TagRef } from '@/shared/api';
 import { TagPicker } from '@/entities/tag';
+import { ArtistPicker, useCreateArtistMutation } from '@/entities/artist';
 import {
+    TRACK_ARTISTS_MAX,
     TRACK_TAGS_MAX,
     TrackFormFields,
     useFetchTrackQuery,
@@ -37,6 +39,27 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
     // set-state-in-effect не нарушается
     const [editedTags, setEditedTags] = useState<TagRef[] | null>(null);
     const tags = editedTags ?? attributes?.tags ?? [];
+
+    // артисты живут по тем же правилам, что и теги: массив объектов мимо
+    // react-hook-form, null означает «не трогали»
+    const [editedArtists, setEditedArtists] = useState<ArtistRef[] | null>(
+        null
+    );
+    const artists = editedArtists ?? attributes?.artists ?? [];
+
+    // мутацию зовёт фича, а не пикер: энтити о мутациях не знает, а поставить
+    // рядом отдельную фичу нельзя — фича не может импортировать фичу
+    const [createArtist, { isLoading: isCreatingArtist }] =
+        useCreateArtistMutation();
+
+    const createArtistHandler = (name: string) => {
+        createArtist({ name })
+            .unwrap()
+            // ответ приходит голым ArtistRef, без конверта — кладём как есть
+            .then((created) => setEditedArtists([...artists, created]))
+            // 403 (лимит 100) и 409 (такое имя занято) уже показал handleErrors
+            .catch(() => {});
+    };
 
     const {
         register,
@@ -88,10 +111,8 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
                     ? new Date(values.releaseDate).toISOString()
                     : null,
                 tagIds: tags.map((tag) => tag.id),
-                // артистов форма не меняет, но отправить их обязана: сервер
-                // заменяет трек целиком, и отсутствие поля стёрло бы их.
-                // Редактирование появится вместе с поиском артистов
-                artistsIds: attributes.artists.map((artist) => artist.id),
+                // поле обязательное, и пустой массив означает «снять всех»
+                artistsIds: artists.map((artist) => artist.id),
             },
         })
             .unwrap()
@@ -116,6 +137,17 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
                 value={tags}
                 onChange={setEditedTags}
                 max={TRACK_TAGS_MAX}
+            />
+
+            {/* пикеры двух разных энтити встречаются здесь: entities/track
+                не имеет права импортировать ни tag, ни artist — композиция
+                уезжает наверх, к тому, кто видит оба слайса */}
+            <ArtistPicker
+                value={artists}
+                onChange={setEditedArtists}
+                max={TRACK_ARTISTS_MAX}
+                onCreate={createArtistHandler}
+                isCreating={isCreatingArtist}
             />
 
             <button>update track</button>

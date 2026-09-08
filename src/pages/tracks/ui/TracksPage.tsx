@@ -1,5 +1,6 @@
 import { TrackItem } from '@/entities/track';
 import { TagPicker } from '@/entities/tag';
+import { ArtistPicker } from '@/entities/artist';
 import { PlayTrackButton } from '@/features/track-play';
 import { TrackReactions } from '@/features/track-reaction';
 import {
@@ -28,6 +29,7 @@ export const TracksPage = () => {
         sortBy,
         sortDirection,
         tags,
+        artists,
         onlyLikedByMe,
         onlyMine,
         canFilterByUser,
@@ -36,6 +38,7 @@ export const TracksPage = () => {
         onSortByChange,
         onSortDirectionChange,
         onTagsChange,
+        onArtistsChange,
         onOnlyLikedByMeChange,
         onOnlyMineChange,
     } = useTracks();
@@ -75,9 +78,18 @@ export const TracksPage = () => {
                 {/* без max: лимит в 5 принадлежит плейлисту, а не фильтру */}
                 <TagPicker value={tags} onChange={onTagsChange} />
 
-                {/* гостю чекбоксы не показываем: оба фильтра требуют пользователя */}
+                {/* гостю не показываем ни чекбоксы, ни пикер артистов:
+                    первым нужен пользователь, второму — токен (artists/search
+                    отвечает 401 с одним API-KEY, в отличие от tags/search) */}
                 {canFilterByUser && (
                     <>
+                        {/* без max: лимит в 5 принадлежит треку, а не фильтру.
+                            И без onCreate: заводить артиста из фильтра незачем */}
+                        <ArtistPicker
+                            value={artists}
+                            onChange={onArtistsChange}
+                        />
+
                         <label>
                             <input
                                 type="checkbox"

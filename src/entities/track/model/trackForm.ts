@@ -3,6 +3,9 @@ export const TRACK_TITLE_MAX_LENGTH = 100;
 export const TRACK_LYRICS_MAX_LENGTH = 5000;
 // сервер принимает 0–5 тегов; пустой массив означает «снять все»
 export const TRACK_TAGS_MAX = 5;
+// столько же артистов; лимит принадлежит треку, а не артисту,
+// поэтому константа живёт здесь, а не в entities/artist
+export const TRACK_ARTISTS_MAX = 5;
 
 // то общее, что есть у обеих форм трека
 // у загрузки на этом поля и заканчиваются: ручка upload принимает

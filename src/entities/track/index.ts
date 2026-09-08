@@ -25,7 +25,7 @@ export {
 } from './model/trackListDefaults';
 // наружу уходит только лимит тегов: его читает TagPicker в форме правки.
 // Длины названия и текста нужны одним лишь TrackFormFields, а он живёт здесь же
-export { TRACK_TAGS_MAX } from './model/trackForm';
+export { TRACK_TAGS_MAX, TRACK_ARTISTS_MAX } from './model/trackForm';
 export type { TrackFormValues, TrackTitleFormValues } from './model/trackForm';
 export { TrackFormFields, TrackTitleField } from './ui/TrackFormFields';
 export { TrackItem } from './ui/TrackItem';
