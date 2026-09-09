@@ -126,6 +126,15 @@ export type CreatePlaylistAttributes = {
     description: string | null;
 };
 
+// ============= PUT /playlists/{playlistId}/reorder =============
+
+// тело перестановки; конверта JSON API здесь нет вовсе — ручка принимает
+// плоский объект, ровно как и перестановка треков внутри плейлиста
+export type ReorderPlaylistRequestPayload = {
+    // id плейлиста, ПОСЛЕ которого встать; null означает «в начало»
+    putAfterItemId: string | null;
+};
+
 // ==================== PUT /playlists/{playlistId} ====================
 
 // тип тела PUT запроса на обновление плейлиста

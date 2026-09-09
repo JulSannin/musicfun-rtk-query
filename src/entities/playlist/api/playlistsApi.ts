@@ -17,6 +17,7 @@ import type {
     FetchPlaylistsArgs,
     GetPlaylistOutput,
     GetPlaylistsOutput,
+    ReorderPlaylistRequestPayload,
     UpdatePlaylistAttributes,
     UpdatePlaylistRequestPayload,
 } from './playlistsApi.types';
@@ -335,6 +336,100 @@ export const playlistsApi = baseApi
                 // это лишь пометка «устарело»: запрос уйдёт при её открытии
                 invalidatesTags: [{ type: 'Playlists', id: 'LIKED' }],
             }),
+
+            // PUT запрос
+            // меняет порядок своих плейлистов; сервер отвечает 204 без тела
+            // принимает не позицию, а id соседа, после которого встать
+            // (null — «в начало»), как и перестановка треков
+            reorderPlaylist: build.mutation<
+                void,
+                {
+                    playlistId: string;
+                    putAfterItemId: string | null;
+                }
+            >({
+                query: ({ playlistId, putAfterItemId }) => ({
+                    method: 'PUT',
+                    url: `playlists/${playlistId}/reorder`,
+                    body: {
+                        putAfterItemId,
+                    } satisfies ReorderPlaylistRequestPayload,
+                }),
+
+                async onQueryStarted(
+                    { playlistId, putAfterItemId },
+                    lifecycleApi
+                ) {
+                    const { dispatch, queryFulfilled } = lifecycleApi;
+
+                    // патчим только списки одного пользователя: порядок
+                    // персональный, а в общей выдаче /playlists карточки идут
+                    // по addedAt, и там его правка ничего не значит
+                    const cachedArgs = playlistsApi.util
+                        .selectCachedArgsForQuery(
+                            lifecycleApi.getState(),
+                            'fetchPlaylists'
+                        )
+                        .filter((args) => args.userId);
+
+                    // тут единственное отличие от перестановки треков:
+                    // там порядок нормализуется один раз в transformResponse,
+                    // и дальше массивом распоряжается только патч. Здесь
+                    // transformResponse общий для всех страниц списка, и
+                    // сортировать в нём по order нельзя — сломается выдача
+                    // по addedAt на /playlists. Поэтому правим сами значения
+                    // order, а список сортирует по ним тот, кто его показывает
+                    const patches = cachedArgs.map((args) =>
+                        dispatch(
+                            playlistsApi.util.updateQueryData(
+                                'fetchPlaylists',
+                                args,
+                                (state) => {
+                                    const ordered = [...state.data].sort(
+                                        (a, b) =>
+                                            a.attributes.order -
+                                            b.attributes.order
+                                    );
+
+                                    const from = ordered.findIndex(
+                                        (playlist) => playlist.id === playlistId
+                                    );
+
+                                    if (from === -1) return;
+
+                                    const [moved] = ordered.splice(from, 1);
+
+                                    const after = putAfterItemId
+                                        ? ordered.findIndex(
+                                              (playlist) =>
+                                                  playlist.id === putAfterItemId
+                                          )
+                                        : -1;
+
+                                    // null значит «в начало»: -1 + 1 даёт 0
+                                    ordered.splice(after + 1, 0, moved);
+
+                                    // номера переписываем подряд: настоящие
+                                    // сервер не присылает (в ответе 204),
+                                    // а для отрисовки важен только их порядок
+                                    ordered.forEach((playlist, index) => {
+                                        playlist.attributes.order = index;
+                                    });
+                                }
+                            )
+                        )
+                    );
+
+                    try {
+                        await queryFulfilled;
+                    } catch {
+                        patches.forEach((patch) => patch.undo());
+                    }
+                },
+
+                // invalidatesTags нет намеренно, только патч: сброс заставлял
+                // бы список прыгать на каждое нажатие, пока едет ответ
+            }),
         }),
     });
 
@@ -349,4 +444,5 @@ export const {
     useUploadPlaylistCoverMutation,
     useDeletePlaylistCoverMutation,
     useSetPlaylistReactionMutation,
+    useReorderPlaylistMutation,
 } = playlistsApi;

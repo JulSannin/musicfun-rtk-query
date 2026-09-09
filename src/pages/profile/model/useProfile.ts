@@ -50,12 +50,22 @@ export const useProfile = () => {
         }
     );
 
+    // сортируем по order здесь, а не в transformResponse: тот общий для всех
+    // выдач списка, и сортировка в нём сломала бы порядок по addedAt
+    // на /playlists. Копию, а не sort на месте: данные приходят из кеша
+    // RTK Query, и его массив трогать нельзя
+    const playlists = playlistsResponse?.data
+        ? [...playlistsResponse.data].sort(
+              (a, b) => a.attributes.order - b.attributes.order
+          )
+        : undefined;
+
     return {
         login: me?.login,
         tab,
         onTabChange: setTab,
         isUnauthorized,
-        playlists: playlistsResponse?.data,
+        playlists,
         // пока не приехал me, skip активен и собственный isLoading запроса false —
         // без isMeLoading страница на это время показала бы пустой список
         isLoading: isMeLoading || isPlaylistsLoading,

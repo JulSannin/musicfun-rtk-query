@@ -18,6 +18,10 @@ type Props = {
     // текст пустого списка задаёт страница: на /playlists пусто значит
     // "поиск ничего не нашёл", на профиле — "своих плейлистов ещё нет"
     emptyText?: string;
+    // показывать ли кнопки перестановки. По умолчанию нет: порядок
+    // персональный, и менять его осмысленно только в своём списке,
+    // где он к тому же и виден — страница обязана отсортировать по order
+    canReorder?: boolean;
 };
 
 // список плейлистов вместе с режимом редактирования
@@ -29,6 +33,7 @@ export const PlaylistsList = ({
     isError,
     isFetching = false,
     emptyText = 'Nothing found',
+    canReorder = false,
 }: Props) => {
     // какой плейлист сейчас редактируем; форма открыта только одна
     // это состояние списка, поэтому живёт здесь, а не в странице
@@ -41,6 +46,9 @@ export const PlaylistsList = ({
     // тот же ответ решает и второй вопрос — может ли человек реагировать
     // от плейлиста это не зависит, поэтому считаем один раз, а не в цикле
     const canReact = Boolean(me);
+
+    // фиче нужен весь порядок: сервер принимает id соседа, а не позицию
+    const orderedIds = playlists?.map((playlist) => playlist.id) ?? [];
 
     return (
         <>
@@ -77,6 +85,9 @@ export const PlaylistsList = ({
                                     isOwner={isOwner}
                                     canReact={canReact}
                                     onEdit={setPlaylistId}
+                                    orderedIds={
+                                        canReorder ? orderedIds : undefined
+                                    }
                                 />
                             )}
                         </div>

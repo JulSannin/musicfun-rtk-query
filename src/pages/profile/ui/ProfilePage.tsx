@@ -83,11 +83,15 @@ export const ProfilePage = () => {
                         {/* создавать плейлисты можно только у себя, поэтому
                             форма здесь, а не на /playlists */}
                         <CreatePlaylistForm />
+                        {/* единственное место, где порядок плейлистов
+                            можно менять: он персональный, и виден только
+                            в своём списке, отсортированном по order */}
                         <PlaylistsList
                             playlists={playlists}
                             isLoading={isLoading}
                             isError={isError}
                             emptyText="You don't have any playlists yet"
+                            canReorder
                         />
                     </>
                 )}

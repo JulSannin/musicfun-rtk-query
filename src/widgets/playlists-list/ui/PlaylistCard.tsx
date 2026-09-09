@@ -3,6 +3,7 @@ import { PlaylistCover, PlaylistInfo } from '@/entities/playlist';
 import { PlaylistCoverActions } from '@/features/playlist-cover';
 import { DeletePlaylistButton } from '@/features/playlist-delete';
 import { PlaylistReactions } from '@/features/playlist-reaction';
+import { PlaylistReorderActions } from '@/features/playlist-reorder';
 import { playlistPath } from '@/shared/config';
 import s from './PlaylistCard.module.css';
 
@@ -20,6 +21,9 @@ type Props = {
     // onEdit ничего не обновляет, он переключает режим показа карточки
     // это состояние списка, поэтому живет наверху, а сюда приходит колбэком
     onEdit: (id: string) => void;
+    // порядок всех карточек списка; приходит, только когда список
+    // показывает перестановку — на /playlists и в библиотеке её нет
+    orderedIds?: string[];
 };
 
 // карточка одного плейлиста в списке
@@ -31,6 +35,7 @@ export const PlaylistCard = ({
     isOwner,
     canReact,
     onEdit,
+    orderedIds,
 }: Props) => {
     return (
         <div className={s.card}>
@@ -72,6 +77,15 @@ export const PlaylistCard = ({
 
                 {isOwner && (
                     <>
+                        {/* перестановка есть не везде: на /playlists порядок
+                            задаёт сортировка, а не человек */}
+                        {orderedIds && (
+                            <PlaylistReorderActions
+                                playlistId={playlist.id}
+                                orderedIds={orderedIds}
+                            />
+                        )}
+
                         {/* id подставляем здесь: наверху знают только "какой-то плейлист", */}
                         {/* а карточка знает, какой именно */}
                         <button onClick={() => onEdit(playlist.id)}>
