@@ -28,7 +28,6 @@ type Props = {
     // пусто на /tracks значит «поиск ничего не нашёл», в библиотеке —
     // «ничего ещё не лайкнул»: текст задаёт вызывающая страница
     emptyText?: string;
-    errorText?: string;
 };
 
 // список треков с бесконечной прокруткой
@@ -50,11 +49,10 @@ export const TracksList = ({
     hasNextPage,
     observerRef,
     emptyText = 'Nothing found',
-    errorText = 'Failed to load tracks',
 }: Props) => {
     return (
         <div>
-            {isError && <div>{errorText}</div>}
+            {isError && <div>Failed to load tracks</div>}
             {isLoading && <div>Loading...</div>}
 
             {/* пустой список это норма, а не поломка */}

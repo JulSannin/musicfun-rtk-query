@@ -11,7 +11,14 @@ type Props = {
 // устроена как PlaylistTrackActions, вплоть до той же арифметики соседей:
 // ручки разные, а правило одно — сервер хочет id, а не индекс
 export const PlaylistReorderActions = ({ playlistId, orderedIds }: Props) => {
-    const [reorderPlaylist, { isLoading }] = useReorderPlaylistMutation();
+    // fixedCacheKey делает состояние мутации общим для всех карточек списка:
+    // пока едет одна перестановка, стрелки погашены везде. Иначе клик
+    // по соседней карточке уходит параллельным запросом, сервер волен
+    // применить их в другом порядке, и клиент останется при своём —
+    // инвалидации, которая бы это исправила, у reorder намеренно нет
+    const [reorderPlaylist, { isLoading }] = useReorderPlaylistMutation({
+        fixedCacheKey: 'playlist-reorder',
+    });
 
     const index = orderedIds.indexOf(playlistId);
     const canMoveUp = index > 0;

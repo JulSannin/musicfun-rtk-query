@@ -78,6 +78,13 @@ export const AddTrackToMyPlaylist = ({ trackId }: Props) => {
         withTrack?.data.map((playlist) => playlist.id) ?? []
     );
 
+    // сортируем по order, как профиль: запись кеша у нас с ним одна и та же,
+    // и показывать один список в двух разных порядках — сбивать с толку.
+    // Сервер отдаёт его по addedAt, порядок пользователя лежит в атрибутах
+    const playlists = mine
+        ? [...mine.data].sort((a, b) => a.attributes.order - b.attributes.order)
+        : [];
+
     // пометки, которые сервер уже подтвердил, выбрасываем. Без этого они
     // живут до закрытия панели и однажды начинают врать: состав плейлиста
     // можно поменять и снаружи — например, со страницы плейлиста прямо
@@ -141,12 +148,12 @@ export const AddTrackToMyPlaylist = ({ trackId }: Props) => {
                     {!isError && !isReady && <div>Loading...</div>}
 
                     {/* плейлистов может не быть вовсе — это норма, а не сбой */}
-                    {isReady && mine?.data.length === 0 && (
+                    {isReady && playlists.length === 0 && (
                         <div>You don&apos;t have any playlists yet</div>
                     )}
 
                     {isReady &&
-                        mine?.data.map((playlist) => {
+                        playlists.map((playlist) => {
                             const onServer = serverHasTrack.has(playlist.id);
                             const isAdded = overrides[playlist.id] ?? onServer;
 

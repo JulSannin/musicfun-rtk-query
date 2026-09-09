@@ -55,13 +55,23 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
     // рядом отдельную фичу нельзя — фича не может импортировать фичу
     const [createTag, { isLoading: isCreatingTag }] = useCreateTagMutation();
 
-    const createTagHandler = (name: string) => {
+    // промис возвращаем наружу: по нему пикер решит, чистить ли поле.
+    // Ошибку здесь не глотаем — её ловит вызывающий, иначе набранное имя
+    // стёрлось бы и после 409
+    const createTagHandler = (name: string) =>
         createTag({ name })
             .unwrap()
             // конверт ответа развернул сам эндпоинт — кладём готовый TagRef
-            .then((created) => setEditedTags([...tags, created]))
-            .catch(() => {});
-    };
+            // функциональный setState, а не [...tags, created]: пока летел
+            // запрос, человек мог снять тег крестиком, и замыкание вернуло бы
+            // его обратно. Из null поднимаем серверное значение — оно значит
+            // «не трогали»
+            .then((created) =>
+                setEditedTags((prev) => [
+                    ...(prev ?? attributes?.tags ?? []),
+                    created,
+                ])
+            );
 
     const [deleteTag, { isLoading: isDeletingTag }] = useDeleteTagMutation();
 
@@ -85,14 +95,22 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
     const [createArtist, { isLoading: isCreatingArtist }] =
         useCreateArtistMutation();
 
-    const createArtistHandler = (name: string) => {
+    // промис возвращаем наружу по той же причине, что и у тегов;
+    // 403 (лимит 100) и 409 (имя занято) покажет handleErrors
+    const createArtistHandler = (name: string) =>
         createArtist({ name })
             .unwrap()
             // ответ приходит голым ArtistRef, без конверта — кладём как есть
-            .then((created) => setEditedArtists([...artists, created]))
-            // 403 (лимит 100) и 409 (такое имя занято) уже показал handleErrors
-            .catch(() => {});
-    };
+            // функциональный setState, а не [...tags, created]: пока летел
+            // запрос, человек мог снять тег крестиком, и замыкание вернуло бы
+            // его обратно. Из null поднимаем серверное значение — оно значит
+            // «не трогали»
+            .then((created) =>
+                setEditedArtists((prev) => [
+                    ...(prev ?? attributes?.artists ?? []),
+                    created,
+                ])
+            );
 
     const {
         register,

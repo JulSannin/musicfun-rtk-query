@@ -40,14 +40,23 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
     // рядом отдельную фичу нельзя — фича не может импортировать фичу
     const [createTag, { isLoading: isCreatingTag }] = useCreateTagMutation();
 
-    const createTagHandler = (name: string) => {
+    // промис возвращаем наружу: по нему пикер решит, чистить ли поле.
+    // Ошибку здесь не глотаем — её ловит вызывающий, иначе набранное имя
+    // стёрлось бы и после 409
+    const createTagHandler = (name: string) =>
         createTag({ name })
             .unwrap()
             // конверт ответа развернул сам эндпоинт — кладём готовый TagRef
-            .then((created) => setEditedTags([...tags, created]))
-            // 403 (лимит 100) и 409 (такое имя занято) уже показал handleErrors
-            .catch(() => {});
-    };
+            // функциональный setState, а не [...tags, created]: пока летел
+            // запрос, человек мог снять тег крестиком, и замыкание вернуло бы
+            // его обратно. Из null поднимаем серверное значение — оно значит
+            // «не трогали»
+            .then((created) =>
+                setEditedTags((prev) => [
+                    ...(prev ?? playlistResponse?.data.attributes.tags ?? []),
+                    created,
+                ])
+            );
 
     const [deleteTag, { isLoading: isDeletingTag }] = useDeleteTagMutation();
 

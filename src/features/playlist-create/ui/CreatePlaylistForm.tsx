@@ -31,13 +31,13 @@ export const CreatePlaylistForm = () => {
 
     const [createTag, { isLoading: isCreatingTag }] = useCreateTagMutation();
 
-    const createTagHandler = (name: string) => {
+    // промис возвращаем наружу: по нему пикер решит, чистить ли поле.
+    // Ошибку не глотаем — её ловит вызывающий, иначе набранное имя
+    // стёрлось бы и после 409 (их показывает handleErrors)
+    const createTagHandler = (name: string) =>
         createTag({ name })
             .unwrap()
-            .then((created) => setTags((prev) => [...prev, created]))
-            // 403 (лимит 100) и 409 (такое имя занято) уже показал handleErrors
-            .catch(() => {});
-    };
+            .then((created) => setTags((prev) => [...prev, created]));
 
     const [deleteTag, { isLoading: isDeletingTag }] = useDeleteTagMutation();
 
