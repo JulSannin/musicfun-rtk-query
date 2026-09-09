@@ -22,3 +22,27 @@ export type TagResource = {
 type TagAttributes = {
     name: string;
 };
+
+// ==================== POST /tags ====================
+
+// то, что реально принимает мутация
+export type CreateTagAttributes = {
+    // сервер требует от 2 до 30 символов
+    name: string;
+};
+
+// тело запроса с конвертом; наружу из слайса не уходит
+export type CreateTagRequestPayload = {
+    data: {
+        type: 'tags';
+        attributes: CreateTagAttributes;
+    };
+};
+
+// ответ создания — конверт с одним тегом
+// вот здесь копипаст с артистов не сработает: POST /artists отдаёт голый
+// ArtistRef, а этот эндпоинт — те же data/attributes, что и поиск тегов,
+// поэтому ответ приходится разворачивать transformResponse'ом
+export type GetTagOutput = {
+    data: TagResource;
+};

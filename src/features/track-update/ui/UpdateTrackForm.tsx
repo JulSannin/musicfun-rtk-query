@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { type ArtistRef, type TagRef } from '@/shared/api';
-import { TagPicker } from '@/entities/tag';
+import { TagPicker, useCreateTagMutation } from '@/entities/tag';
 import { ArtistPicker, useCreateArtistMutation } from '@/entities/artist';
 import {
     TRACK_ARTISTS_MAX,
@@ -47,8 +47,18 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
     );
     const artists = editedArtists ?? attributes?.artists ?? [];
 
-    // мутацию зовёт фича, а не пикер: энтити о мутациях не знает, а поставить
+    // мутации зовёт фича, а не пикеры: энтити о мутациях не знают, а поставить
     // рядом отдельную фичу нельзя — фича не может импортировать фичу
+    const [createTag, { isLoading: isCreatingTag }] = useCreateTagMutation();
+
+    const createTagHandler = (name: string) => {
+        createTag({ name })
+            .unwrap()
+            // конверт ответа развернул сам эндпоинт — кладём готовый TagRef
+            .then((created) => setEditedTags([...tags, created]))
+            .catch(() => {});
+    };
+
     const [createArtist, { isLoading: isCreatingArtist }] =
         useCreateArtistMutation();
 
@@ -137,6 +147,8 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
                 value={tags}
                 onChange={setEditedTags}
                 max={TRACK_TAGS_MAX}
+                onCreate={createTagHandler}
+                isCreating={isCreatingTag}
             />
 
             {/* пикеры двух разных энтити встречаются здесь: entities/track

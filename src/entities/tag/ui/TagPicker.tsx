@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { TagRef } from '@/shared/api';
 import { useDebounce } from '@/shared/lib';
 import { useSearchTagsQuery } from '../api/tagsApi';
+import { TAG_NAME_MAX_LENGTH, TAG_NAME_MIN_LENGTH } from '../model/tagForm';
 
 type Props = {
     // выбранные теги целиком, а не только id: имя нужно, чтобы нарисовать чип,
@@ -10,11 +11,25 @@ type Props = {
     onChange: (tags: TagRef[]) => void;
     // сколько тегов разрешено: у плейлиста 5, у фильтра ограничения нет
     max?: number;
+    // «заведи тег с таким именем». Мутацию зовёт тот, кто передал колбэк:
+    // энтити о мутациях не знает, а поставить рядом фичу нельзя — пикер
+    // рендерится внутри формы, и фича не может импортировать фичу.
+    // Без колбэка кнопка создания просто не рисуется: в фильтрах списков
+    // заводить тег незачем
+    onCreate?: (name: string) => void;
+    // создание в процессе: гасим кнопку, чтобы не завести двух одинаковых
+    isCreating?: boolean;
 };
 
 // поиск тегов по подстроке плюс уже выбранные рядом
 // entities: про плейлисты не знает, наверх отдаёт только выбор
-export const TagPicker = ({ value, onChange, max }: Props) => {
+export const TagPicker = ({
+    value,
+    onChange,
+    max,
+    onCreate,
+    isCreating = false,
+}: Props) => {
     const [search, setSearch] = useState('');
 
     // запрос уходит после паузы, как и поиск плейлистов
@@ -32,6 +47,20 @@ export const TagPicker = ({ value, onChange, max }: Props) => {
     const suggestions = found.filter(
         (tag) => !value.some((selected) => selected.id === tag.id)
     );
+
+    // создавать предлагаем, только когда искали, дождались и точно ничего
+    // не нашли: иначе кнопка мигает на каждой букве. Длину проверяем здесь,
+    // а не после 400 от сервера
+    const canCreate =
+        Boolean(onCreate) &&
+        !isFull &&
+        !isFetching &&
+        query.length >= TAG_NAME_MIN_LENGTH &&
+        query.length <= TAG_NAME_MAX_LENGTH &&
+        // точное совпадение уже есть — создавать дубль сервер и не даст (409)
+        ![...found, ...value].some(
+            (tag) => tag.name.toLowerCase() === query.toLowerCase()
+        );
 
     const addHandler = (tag: TagRef) => {
         // лимит держим здесь, а не только на disabled у инпута: подсказки остаются
@@ -81,6 +110,21 @@ export const TagPicker = ({ value, onChange, max }: Props) => {
                     {tag.name}
                 </button>
             ))}
+
+            {canCreate && (
+                <button
+                    type="button"
+                    onClick={() => {
+                        onCreate?.(query);
+                        // поле чистим сразу: созданный тег вызывающий код
+                        // сам положит в value, искать его заново незачем
+                        setSearch('');
+                    }}
+                    disabled={isCreating}
+                >
+                    {isCreating ? 'creating...' : `create "${query}"`}
+                </button>
+            )}
         </div>
     );
 };

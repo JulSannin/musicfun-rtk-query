@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { type TagRef } from '@/shared/api';
-import { TagPicker } from '@/entities/tag';
+import { TagPicker, useCreateTagMutation } from '@/entities/tag';
 import { PLAYLIST_TAGS_MAX } from '@/entities/playlist';
 import {
     PlaylistFormFields,
@@ -31,6 +31,19 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
     // значение выводится на рендере и правило set-state-in-effect не нарушается
     const [editedTags, setEditedTags] = useState<TagRef[] | null>(null);
     const tags = editedTags ?? playlistResponse?.data.attributes.tags ?? [];
+
+    // мутацию зовёт фича, а не пикер: энтити о мутациях не знает, а поставить
+    // рядом отдельную фичу нельзя — фича не может импортировать фичу
+    const [createTag, { isLoading: isCreatingTag }] = useCreateTagMutation();
+
+    const createTagHandler = (name: string) => {
+        createTag({ name })
+            .unwrap()
+            // конверт ответа развернул сам эндпоинт — кладём готовый TagRef
+            .then((created) => setEditedTags([...tags, created]))
+            // 403 (лимит 100) и 409 (такое имя занято) уже показал handleErrors
+            .catch(() => {});
+    };
 
     const {
         register,
@@ -87,6 +100,8 @@ export const UpdatePlaylistForm = ({ playlistId, onClose }: Props) => {
                 value={tags}
                 onChange={setEditedTags}
                 max={PLAYLIST_TAGS_MAX}
+                onCreate={createTagHandler}
+                isCreating={isCreatingTag}
             />
 
             <button>update playlist</button>
