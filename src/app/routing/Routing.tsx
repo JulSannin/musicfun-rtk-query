@@ -3,6 +3,7 @@ import { MainPage } from '@/pages/main';
 import { PlaylistsPage } from '@/pages/playlists';
 import { PlaylistPage } from '@/pages/playlist';
 import { TracksPage } from '@/pages/tracks';
+import { LibraryPage } from '@/pages/library';
 import { ProfilePage } from '@/pages/profile';
 import { OAuthCallbackPage } from '@/pages/oauth-callback';
 import { PageNotFound } from '@/pages/not-found';
@@ -19,6 +20,7 @@ export const Routing = () => (
         <Route path={paths.Playlists} element={<PlaylistsPage />} />
         <Route path={paths.Playlist} element={<PlaylistPage />} />
         <Route path={paths.Tracks} element={<TracksPage />} />
+        <Route path={paths.Library} element={<LibraryPage />} />
         <Route path={paths.Profile} element={<ProfilePage />} />
         <Route path={paths.OAuthCallback} element={<OAuthCallbackPage />} />
         <Route path={paths.NotFound} element={<PageNotFound />} />

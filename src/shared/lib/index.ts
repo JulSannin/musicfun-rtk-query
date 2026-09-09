@@ -13,4 +13,5 @@ export {
 export { formatDuration } from './formatDuration';
 export { useInfiniteScroll } from './hooks/useInfiniteScroll';
 export { useTrackPanel } from './hooks/useTrackPanel';
+export { useUrlTab } from './hooks/useUrlTab';
 export { errorToast, successToast } from './toast';

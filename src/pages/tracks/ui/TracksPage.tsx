@@ -1,14 +1,7 @@
-import { TrackItem } from '@/entities/track';
 import { TagPicker } from '@/entities/tag';
 import { ArtistPicker } from '@/entities/artist';
-import { PlayTrackButton } from '@/features/track-play';
-import { TrackReactions } from '@/features/track-reaction';
-import {
-    LinearProgress,
-    LoadingTrigger,
-    SearchInput,
-    Select,
-} from '@/shared/ui';
+import { TracksList } from '@/widgets/tracks-list';
+import { SearchInput, Select } from '@/shared/ui';
 import { useTracks } from '../model/useTracks';
 import s from './TracksPage.module.css';
 
@@ -119,59 +112,21 @@ export const TracksPage = () => {
                 )}
             </div>
 
-            {isError && <div>Failed to load tracks</div>}
-            {isLoading && <div>Loading...</div>}
-
-            {/* пусто бывает и от фильтров, а не только от пустой базы */}
-            {!isLoading && !isError && items.length === 0 && (
-                <div>Nothing found</div>
-            )}
-
-            {/* isReloading гасит список и рисует полосу поверх: старые треки */}
-            {/* остаются на экране, пока едет выдача под новыми фильтрами */}
-            <div className={`${s.list} ${isReloading ? s.fetching : ''}`}>
-                {isReloading && <LinearProgress />}
-                {items.map(({ track, artistNames }) => (
-                    // key от трека, а не индекс: список растет, индексы поехали бы
-                    // презентация из entities и действие из features склеиваются
-                    // здесь: сам TrackItem импортировать фичу не имеет права
-                    <div className={s.row} key={track.id}>
-                        {/* очередь у всех строк одна и та же: с какого трека
-                            ни начали, дальше плеер идёт по видимому списку */}
-                        <PlayTrackButton
-                            trackId={track.id}
-                            queue={queue}
-                            canPlay={track.attributes.attachments.length > 0}
-                        />
-                        <div className={s.track}>
-                            <TrackItem
-                                track={track}
-                                artistNames={artistNames}
-                                onSelect={onTrackSelect}
-                            />
-                        </div>
-                        <TrackReactions
-                            trackId={track.id}
-                            likesCount={track.attributes.likesCount}
-                            currentUserReaction={
-                                track.attributes.currentUserReaction
-                            }
-                            canReact={canReact}
-                        />
-                    </div>
-                ))}
-            </div>
-
-            {/* маячок рисуем, только пока есть что грузить */}
-            {hasNextPage && (
-                <LoadingTrigger
-                    observerRef={observerRef}
-                    isFetchingNextPage={isFetchingNextPage}
-                />
-            )}
-
-            {/* сообщение только когда что-то уже загружено: на пустом списке оно сбивает с толку */}
-            {!hasNextPage && items.length > 0 && <p>Nothing more to load</p>}
+            {/* сам список — виджет: ту же строку (запуск + трек + реакции)
+                показывает библиотека, и копии этой разметки быть не должно.
+                Запрос и фильтры остаются здесь, в хуке страницы */}
+            <TracksList
+                items={items}
+                queue={queue}
+                onTrackSelect={onTrackSelect}
+                canReact={canReact}
+                isLoading={isLoading}
+                isError={isError}
+                isReloading={isReloading}
+                isFetchingNextPage={isFetchingNextPage}
+                hasNextPage={hasNextPage}
+                observerRef={observerRef}
+            />
         </div>
     );
 };

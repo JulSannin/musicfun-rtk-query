@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
     DEFAULT_TRACK_SORT_BY,
     DEFAULT_TRACK_SORT_DIRECTION,
+    toTrackListItems,
     useFetchTracksInfiniteQuery,
     type TrackSortBy,
 } from '@/entities/track';
@@ -86,28 +87,10 @@ export const useTracks = () => {
         }
     );
 
-    // имена артистов лежат в included каждой страницы, в самом треке только их id
-    // собираем один общий словарь по всем подгруженным страницам
-    const artistNameById = new Map<string, string>(
-        data?.pages
-            .flatMap((page) => page.included)
-            .map((artist) => [artist.id, artist.attributes.name] as const)
-    );
-
-    // хук отдает { pages, pageParams }; для списка страницы схлопываем в один массив
-    const items =
-        data?.pages
-            .flatMap((page) => page.data)
-            .map((track) => ({
-                track,
-                // артист мог не приехать в included — filter убирает такие дырки,
-                // чтобы в разметке не появилось undefined
-                artistNames: track.relationships.artists.data
-                    .map(({ id }) => artistNameById.get(id))
-                    // предикат явный: get у Map возвращает string | undefined,
-                    // и без него отфильтрованный массив остался бы с undefined в типе
-                    .filter((name): name is string => Boolean(name)),
-            })) ?? [];
+    // хук отдаёт { pages, pageParams }; схлопывание страниц и подстановку
+    // имён артистов из included делает общий разбор в entities/track —
+    // тот же, которым пользуются свои треки и библиотека
+    const items = data ? toTrackListItems(data.pages) : [];
 
     // очередь для плеера: снимки, а не ссылки на кеш — запись fetchTracks живёт
     // под своим набором аргументов и пропадёт после смены фильтров, а начатый

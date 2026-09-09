@@ -2,6 +2,7 @@ import { useGetMeQuery } from '@/entities/profile';
 import {
     DEFAULT_TRACK_SORT_BY,
     DEFAULT_TRACK_SORT_DIRECTION,
+    toTrackListItems,
     useFetchTracksInfiniteQuery,
 } from '@/entities/track';
 import { useInfiniteScroll, useTrackPanel } from '@/shared/lib';
@@ -45,24 +46,9 @@ export const useMyTracks = () => {
         }
     );
 
-    // имена артистов лежат в included каждой страницы, в самом треке только их id
-    const artistNameById = new Map<string, string>(
-        data?.pages
-            .flatMap((page) => page.included)
-            .map((artist) => [artist.id, artist.attributes.name] as const)
-    );
-
-    // хук отдаёт { pages, pageParams }; для списка страницы схлопываем в один массив
-    const items =
-        data?.pages
-            .flatMap((page) => page.data)
-            .map((track) => ({
-                track,
-                artistNames: track.relationships.artists.data
-                    .map(({ id }) => artistNameById.get(id))
-                    // предикат явный: get у Map возвращает string | undefined
-                    .filter((name): name is string => Boolean(name)),
-            })) ?? [];
+    // страницы схлопывает и имена артистов из included подставляет
+    // общий разбор из entities/track
+    const items = data ? toTrackListItems(data.pages) : [];
 
     const { observerRef } = useInfiniteScroll({
         hasNextPage,

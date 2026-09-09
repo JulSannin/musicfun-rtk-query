@@ -16,6 +16,10 @@ const navItems = [
     { to: paths.Tracks, label: 'Tracks' },
 ];
 
+// библиотека стоит отдельно от остальных: обе её выдачи просят токен,
+// и гостя она встретила бы редиректом — показывать ему такую ссылку нечестно
+const authNavItems = [{ to: paths.Library, label: 'Library' }];
+
 // шапка сайта, видна на всех страницах
 // рендерится в App над Routing, поэтому переживает смену роута
 export const Header = () => {
@@ -26,21 +30,23 @@ export const Header = () => {
             <nav>
                 <ul className={s.list}>
                     {/* key берем от адреса: он уникален и не меняется */}
-                    {navItems.map((item) => (
-                        <li key={item.to}>
-                            {/* NavLink сам понимает, ведет ли он на текущую страницу */}
-                            {/* isActive приходит от роутера, по нему подсвечиваем пункт */}
-                            {/* className принимает функцию именно ради isActive */}
-                            <NavLink
-                                to={item.to}
-                                className={({ isActive }) =>
-                                    `link ${isActive ? s.activeLink : ''}`
-                                }
-                            >
-                                {item.label}
-                            </NavLink>
-                        </li>
-                    ))}
+                    {[...navItems, ...(data ? authNavItems : [])].map(
+                        (item) => (
+                            <li key={item.to}>
+                                {/* NavLink сам понимает, ведет ли он на текущую страницу */}
+                                {/* isActive приходит от роутера, по нему подсвечиваем пункт */}
+                                {/* className принимает функцию именно ради isActive */}
+                                <NavLink
+                                    to={item.to}
+                                    className={({ isActive }) =>
+                                        `link ${isActive ? s.activeLink : ''}`
+                                    }
+                                >
+                                    {item.label}
+                                </NavLink>
+                            </li>
+                        )
+                    )}
                 </ul>
             </nav>
 

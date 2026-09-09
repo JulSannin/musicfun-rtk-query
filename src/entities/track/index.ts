@@ -16,6 +16,7 @@ export {
 export type {
     TrackSortBy,
     GetTrackListOutput,
+    TrackListItemResource,
     GetTracksForPlaylistOutput,
     TrackListItemResourceForPlaylist,
 } from './api/tracksApi.types';
@@ -23,6 +24,9 @@ export {
     DEFAULT_TRACK_SORT_BY,
     DEFAULT_TRACK_SORT_DIRECTION,
 } from './model/trackListDefaults';
+// разбор included: связь «id артиста -> имя» одинаковая у всех трёх списков
+export { toTrackListItems } from './model/toTrackListItems';
+export type { TrackListItem } from './model/toTrackListItems';
 // наружу уходит только лимит тегов: его читает TagPicker в форме правки.
 // Длины названия и текста нужны одним лишь TrackFormFields, а он живёт здесь же
 export { TRACK_TAGS_MAX, TRACK_ARTISTS_MAX } from './model/trackForm';

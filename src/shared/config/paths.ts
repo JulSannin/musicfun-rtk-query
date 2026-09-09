@@ -7,6 +7,9 @@ const paths = {
     // чтобы шаблон пути жил в одном месте с роутером
     Playlist: '/playlists/:playlistId',
     Tracks: '/tracks',
+    // понравившееся: своей секции у него нет на профиле,
+    // потому что «моё» и «понравившееся» это разные вещи
+    Library: '/library',
     Profile: '/profile',
     OAuthCallback: '/oauth/callback',
     // "*" ловит любой адрес, которого нет в списке

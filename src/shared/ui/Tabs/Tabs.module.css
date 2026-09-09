@@ -1,0 +1,25 @@
+/* переключатель секций; подчёркивание у активной, а не рамка вокруг всей
+   кнопки — так видно, что это одно окно с двумя вкладками, а не два блока */
+.tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #ccc;
+}
+
+.tab {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 8px 12px;
+    cursor: pointer;
+    font: inherit;
+    /* сдвигаем на толщину общей линии, иначе подчёркивание активной вкладки
+       встаёт под ней второй полосой вместо того, чтобы её перекрыть */
+    margin-bottom: -1px;
+}
+
+.tabActive {
+    border-bottom-color: currentColor;
+    font-weight: 600;
+}

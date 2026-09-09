@@ -5,7 +5,8 @@ import { UploadTrackForm } from '@/features/track-upload';
 import { MyTracks } from '@/widgets/my-tracks';
 import { PlaylistsList } from '@/widgets/playlists-list';
 import { paths } from '@/shared/config';
-import { useProfile } from '../model/useProfile';
+import { Tabs } from '@/shared/ui';
+import { PROFILE_TABS, useProfile } from '../model/useProfile';
 import s from './ProfilePage.module.css';
 
 // страница профиля: свои плейлисты и свои треки
@@ -37,28 +38,9 @@ export const ProfilePage = () => {
     return (
         <>
             <h1>{login} page</h1>
-            {/* переключатель секций: кнопки, а не ссылки — адрес меняется
-                параметром, а не переходом на другой роут.
-                Активную не блокируем: disabled выкинул бы её из обхода по Tab,
-                состояние передаёт aria-pressed — тот же приём, что у пагинации */}
-            <div className={s.tabs}>
-                <button
-                    type="button"
-                    className={`${s.tab} ${tab === 'tracks' ? s.tabActive : ''}`}
-                    aria-pressed={tab === 'tracks'}
-                    onClick={() => onTabChange('tracks')}
-                >
-                    My tracks
-                </button>
-                <button
-                    type="button"
-                    className={`${s.tab} ${tab === 'playlists' ? s.tabActive : ''}`}
-                    aria-pressed={tab === 'playlists'}
-                    onClick={() => onTabChange('playlists')}
-                >
-                    My playlists
-                </button>
-            </div>
+            {/* сам переключатель лежит в shared/ui: такие же вкладки
+                у библиотеки, и разметке незачем жить в двух местах */}
+            <Tabs tabs={PROFILE_TABS} value={tab} onChange={onTabChange} />
 
             {/* в окне живёт только выбранная секция: невыбранная размонтирована,
                 её подписка снята и запрос за ней не уходит. Данные при этом
