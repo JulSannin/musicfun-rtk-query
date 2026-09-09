@@ -1,73 +1,76 @@
-# React + TypeScript + Vite
+# MusicFun
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Учебный музыкальный клиент к API MusicFun: плейлисты, треки, сквозной плеер и личная библиотека. Написан на React 19 и RTK Query по методологии Feature-Sliced Design.
 
-Currently, two official plugins are available:
+Проект интересен не набором экранов, а тем, как в нём устроен кеш: почти все действия чинят его точечными патчами вместо инвалидации, потому что списки бесконечные и сброс тега перезапрашивал бы все загруженные страницы. Разбор этих решений — в [CLAUDE.md](CLAUDE.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Стек
 
-## React Compiler
+React 19 · TypeScript 6 · Vite 8 · Redux Toolkit 2 (RTK Query) · react-router 8 · react-hook-form · CSS-модули
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Архитектура проверяется линтером [steiger](https://github.com/feature-sliced/steiger), типы — сборкой.
 
-## Expanding the ESLint configuration
+## Запуск
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Нужен Node 22.22 или новее — планку задаёт `react-router@8`, она строже вайтовской (`^20.19 || >=22.12`).
 
-```js
-export default defineConfig([
-    globalIgnores(['dist']),
-    {
-        files: ['**/*.{ts,tsx}'],
-        extends: [
-            // Other configs...
-
-            // Remove tseslint.configs.recommended and replace with this
-            tseslint.configs.recommendedTypeChecked,
-            // Alternatively, use this for stricter rules
-            tseslint.configs.strictTypeChecked,
-            // Optionally, add this for stylistic rules
-            tseslint.configs.stylisticTypeChecked,
-
-            // Other configs...
-        ],
-        languageOptions: {
-            parserOptions: {
-                project: ['./tsconfig.node.json', './tsconfig.app.json'],
-                tsconfigRootDir: import.meta.dirname,
-            },
-            // other options...
-        },
-    },
-]);
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Переменные окружения лежат в `.env` (в репозитории): базовый URL API и адрес фронта. Не хватает только ключа — его кладут в `.env.local`, который в git не попадает:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
-
-export default defineConfig([
-    globalIgnores(['dist']),
-    {
-        files: ['**/*.{ts,tsx}'],
-        extends: [
-            // Other configs...
-            // Enable lint rules for React
-            reactX.configs['recommended-typescript'],
-            // Enable lint rules for React DOM
-            reactDom.configs.recommended,
-        ],
-        languageOptions: {
-            parserOptions: {
-                project: ['./tsconfig.node.json', './tsconfig.app.json'],
-                tsconfigRootDir: import.meta.dirname,
-            },
-            // other options...
-        },
-    },
-]);
+```bash
+# .env.local
+VITE_API_KEY=ваш-ключ
 ```
+
+Ключ выдаёт бэкенд MusicFun; без него не пройдёт ни один запрос. Учти, что API ещё и ограничивает частоту обращений и отвечает 429, если запросов слишком много.
+
+```bash
+npm run dev
+```
+
+Вход — через OAuth в отдельном окне (кнопка Login в шапке). Без авторизации доступны списки плейлистов и треков и проигрывание; всё остальное — свои плейлисты, загрузка треков, реакции, библиотека — требует входа.
+
+## Скрипты
+
+| Команда           | Что делает                                    |
+| ----------------- | --------------------------------------------- |
+| `npm run dev`     | dev-сервер Vite                               |
+| `npm run build`   | проверка типов (`tsc -b`) и продакшн-сборка   |
+| `npm run lint`    | ESLint с type-aware правилами                 |
+| `npm run steiger` | проверка правил Feature-Sliced Design         |
+| `npm run format`  | Prettier                                      |
+| `npm run gen:api` | перегенерация справочника типов из `api-json` |
+
+Тестов в проекте нет — ни раннера, ни тестовых файлов. Изменения проверяются связкой `build` + `lint` + `steiger`.
+
+## Возможности
+
+| Страница         | Что там есть                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| `/playlists`     | поиск, фильтр по тегам, сортировка, пагинация, лайки; свои плейлисты можно править и удалять              |
+| `/playlists/:id` | состав плейлиста: добавление и удаление треков, перестановка, запуск всего плейлиста                      |
+| `/tracks`        | бесконечная прокрутка, поиск, фильтры по тегам и артистам, «только мои» и «только понравившиеся»          |
+| `/library`       | две вкладки: понравившиеся треки и понравившиеся плейлисты                                                |
+| `/profile`       | свои треки (загрузка mp3, публикация, правка, обложки) и свои плейлисты: создание, правка, ручной порядок |
+
+Сквозные вещи, живущие поверх страниц: мини-плеер с очередью, переживающий смену роута, и панель подробностей трека, которая раскрывается по `?track=<id>` над любой страницей.
+
+## Архитектура коротко
+
+Слои FSD: `app` → `pages` → `widgets` → `features` → `entities` → `shared`; импорт только вниз, соседние слайсы одного слоя друг друга не видят. Отсюда почти вся раскладка: если двум сущностям надо встретиться, они встречаются слоем выше.
+
+Все запросы — один `createApi` с пустыми эндпоинтами, слайсы дописывают свои через `injectEndpoints`. Из неочевидного:
+
+- **Кеш чинится патчами, а не инвалидацией.** Реакции, перестановки и обложки правят записи кеша руками через `onQueryStarted`; сброс тега оставлен редким операциям вроде загрузки трека.
+- **Две модели пагинации рядом**: плейлисты листаются номерами страниц, треки — курсором через `infiniteQuery`, потому что список пополняется и offset давал бы дубли.
+- **Типы API написаны руками.** `api-generated/` — выгрузка из свагера для сверки, в `src` она не импортируется.
+- **Плеер — единственный Redux-слайс не про запросы**: его состояние переживает смену роута, а в очередь кладутся снимки треков, а не ссылки на кеш.
+
+Подробности с обоснованиями, включая ловушки авторизации, обработку ошибок и правила форм, — в [CLAUDE.md](CLAUDE.md). Он писался как справочник для тех, кто правит этот код, и объясняет «почему так», а не «что где лежит».
+
+## Состояние
+
+Из 41 операции API задействовано 36. Осознанно не используется `GET /playlists/my` — пользовательский порядок приходит и в обычной выдаче, а отдельный эндпоинт завёл бы запись кеша мимо всех существующих патчей. Не реализованы удаление артиста и вход по логину и паролю (`/auth/simple/*`) — у последнего своя ручка обновления токена, и его подключение затрагивает механику рефреша.
