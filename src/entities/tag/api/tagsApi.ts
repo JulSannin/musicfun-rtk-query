@@ -65,7 +65,34 @@ export const tagsApi = baseApi
                 // 409 — «тег с таким именем уже есть»; оба показывает handleErrors
                 invalidatesTags: [{ type: 'Tags', id: 'LIST' }],
             }),
+
+            // DELETE запрос
+            // удаляет тег насовсем; сервер отвечает 204 без тела
+            // аргумент голой строкой, без объекта: у мутации один параметр —
+            // тот же приём, что у deletePlaylist
+            deleteTag: build.mutation<void, string>({
+                query: (tagId) => ({
+                    method: 'DELETE',
+                    url: `tags/${tagId}`,
+                }),
+
+                // 403 здесь значит сразу две разные вещи — «тег создан другим
+                // пользователем» и «тег привязан к трекам или плейлистам», —
+                // и различить их по коду нельзя, только по тексту сервера,
+                // который покажет handleErrors. Клиент этого не предскажет:
+                // об авторе тега в ответе поиска нет ни слова
+                //
+                // Зато из этого же следует приятное: раз привязанный тег
+                // удалить нельзя, после успешного 204 он гарантированно нигде
+                // не лежит — чистить его из кеша плейлистов и треков не нужно,
+                // хватает сброса подсказок
+                invalidatesTags: [{ type: 'Tags', id: 'LIST' }],
+            }),
         }),
     });
 
-export const { useSearchTagsQuery, useCreateTagMutation } = tagsApi;
+export const {
+    useSearchTagsQuery,
+    useCreateTagMutation,
+    useDeleteTagMutation,
+} = tagsApi;

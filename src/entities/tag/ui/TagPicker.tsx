@@ -19,6 +19,12 @@ type Props = {
     onCreate?: (name: string) => void;
     // создание в процессе: гасим кнопку, чтобы не завести двух одинаковых
     isCreating?: boolean;
+    // «удали этот тег насовсем». Мутацию, как и создание, зовёт тот, кто
+    // передал колбэк. Без него кнопки удаления нет вовсе: в фильтрах списков
+    // разрушительному действию не место
+    onDelete?: (tag: TagRef) => void;
+    // удаление в процессе: гасим кнопки, чтобы не отправить два запроса
+    isDeleting?: boolean;
 };
 
 // поиск тегов по подстроке плюс уже выбранные рядом
@@ -29,6 +35,8 @@ export const TagPicker = ({
     max,
     onCreate,
     isCreating = false,
+    onDelete,
+    isDeleting = false,
 }: Props) => {
     const [search, setSearch] = useState('');
 
@@ -102,13 +110,30 @@ export const TagPicker = ({
             )}
 
             {suggestions.map((tag) => (
-                <button
-                    type="button"
-                    key={tag.id}
-                    onClick={() => addHandler(tag)}
-                >
-                    {tag.name}
-                </button>
+                // обёртка, а не одна кнопка: вложить кнопку удаления внутрь
+                // кнопки выбора нельзя — это невалидная разметка
+                <span key={tag.id}>
+                    <button type="button" onClick={() => addHandler(tag)}>
+                        {tag.name}
+                    </button>
+
+                    {/* ярлык словом, а не крестиком: крестик рядом у выбранных
+                        тегов означает «убрать из выбранных», и спутать эти два
+                        действия — значит стереть чужой тег вместо своего.
+                        Свои теги от чужих отличить нечем: в ответе поиска
+                        об авторе ничего нет, поэтому кнопка есть у всех,
+                        а на чужой сервер ответит 403 с объяснением */}
+                    {onDelete && (
+                        <button
+                            type="button"
+                            onClick={() => onDelete(tag)}
+                            disabled={isDeleting}
+                            aria-label={`Delete tag ${tag.name} permanently`}
+                        >
+                            delete
+                        </button>
+                    )}
+                </span>
             ))}
 
             {canCreate && (

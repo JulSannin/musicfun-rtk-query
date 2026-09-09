@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { type ArtistRef, type TagRef } from '@/shared/api';
-import { TagPicker, useCreateTagMutation } from '@/entities/tag';
+import {
+    TagPicker,
+    useCreateTagMutation,
+    useDeleteTagMutation,
+} from '@/entities/tag';
 import { ArtistPicker, useCreateArtistMutation } from '@/entities/artist';
 import {
     TRACK_ARTISTS_MAX,
@@ -56,6 +60,25 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
             .unwrap()
             // конверт ответа развернул сам эндпоинт — кладём готовый TagRef
             .then((created) => setEditedTags([...tags, created]))
+            .catch(() => {});
+    };
+
+    const [deleteTag, { isLoading: isDeletingTag }] = useDeleteTagMutation();
+
+    // confirm нативный намеренно, как и у остальных разрушительных действий:
+    // ответ нужен ДО запроса, а восстановления удалённого тега в API нет
+    const deleteTagHandler = (tag: TagRef) => {
+        if (!confirm(`Delete tag "${tag.name}" permanently?`)) return;
+
+        deleteTag(tag.id)
+            .unwrap()
+            // из выбранных ничего убирать не нужно, хотя соблазн есть:
+            // кнопка удаления стоит только у подсказок, а выбранные из них
+            // вычёркиваются — значит удалённого тега в форме заведомо нет.
+            // Сами подсказки обновит сброс Tags/LIST
+            //
+            // 403 значит «чужой тег» или «уже используется» — текст от сервера
+            // показал handleErrors
             .catch(() => {});
     };
 
@@ -149,6 +172,8 @@ export const UpdateTrackForm = ({ trackId, onClose }: Props) => {
                 max={TRACK_TAGS_MAX}
                 onCreate={createTagHandler}
                 isCreating={isCreatingTag}
+                onDelete={deleteTagHandler}
+                isDeleting={isDeletingTag}
             />
 
             {/* пикеры двух разных энтити встречаются здесь: entities/track
