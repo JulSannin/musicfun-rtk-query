@@ -2,6 +2,7 @@ import { useSelector } from 'react-redux';
 import { selectQueue } from '@/entities/player';
 import { TrackCover } from '@/entities/track';
 import { TrackCoverActions } from '@/features/track-cover';
+import { AddTrackToMyPlaylist } from '@/features/playlist-track-add';
 import { PlayTrackButton } from '@/features/track-play';
 import { TrackReactions } from '@/features/track-reaction';
 import { formatDuration } from '@/shared/lib';
@@ -75,6 +76,14 @@ export const TrackDetails = ({ trackId, onClose }: Props) => {
 
                     <h2>{attributes.title}</h2>
                     <p>Name: {attributes.user.name}</p>
+
+                    {/* добавить можно и чужой трек: сервер проверяет права
+                        на плейлист, а не на трек.
+                        key обязателен: панель не размонтируется при переходе
+                        с трека на трек — меняется только аргумент, — и без него
+                        раскрытый список вместе с пометками «added» переехал бы
+                        на следующий трек */}
+                    <AddTrackToMyPlaylist key={trackId} trackId={trackId} />
 
                     {/* артисты лежат прямо в атрибутах: на этой ручке
                         included нет вообще */}

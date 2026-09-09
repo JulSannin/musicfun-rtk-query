@@ -26,6 +26,12 @@ export const TrackTitleField = ({ register, errors }: TitleProps) => {
                         value: TRACK_TITLE_MAX_LENGTH,
                         message: `No more than ${TRACK_TITLE_MAX_LENGTH} characters`,
                     },
+                    // одного required мало: строка из пробелов непустая,
+                    // и он её пропускает — в списке появился бы трек
+                    // без видимого названия
+                    validate: (value) =>
+                        value.trim().length > 0 ||
+                        'Title cannot be empty or spaces only',
                 })}
                 placeholder="title"
             />

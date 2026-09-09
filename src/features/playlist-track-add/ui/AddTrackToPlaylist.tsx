@@ -3,10 +3,8 @@ import {
     useAddTrackToPlaylistMutation,
     useFetchTracksInfiniteQuery,
 } from '@/entities/track';
+import { PLAYLIST_TRACKS_MAX } from '@/entities/playlist';
 import { useDebounce } from '@/shared/lib';
-
-// лимит сервера: одиннадцатый трек вернётся 403 с текстом про лимит
-const PLAYLIST_TRACKS_MAX = 10;
 
 type Props = {
     playlistId: string;

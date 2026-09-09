@@ -24,6 +24,12 @@ export const PlaylistFormFields = ({ register, errors }: Props) => {
                             value: PLAYLIST_TITLE_MAX_LENGTH,
                             message: `No more than ${PLAYLIST_TITLE_MAX_LENGTH} characters`,
                         },
+                        // одного required мало: строка из пробелов непустая,
+                        // и он её пропускает. Сервер такое название примет,
+                        // и в списке появится карточка без видимого имени
+                        validate: (value) =>
+                            value.trim().length > 0 ||
+                            'Title cannot be empty or spaces only',
                     })}
                     placeholder="title"
                 />

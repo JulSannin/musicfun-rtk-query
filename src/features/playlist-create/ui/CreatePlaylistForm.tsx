@@ -51,7 +51,9 @@ export const CreatePlaylistForm = () => {
     // сюда попадаем только после успешной валидации, ее делает handleSubmit
     const onSubmit: SubmitHandler<PlaylistFormValues> = (values) => {
         const attributes = {
-            title: values.title,
+            // trim, потому что валидация отсекает только строку целиком
+            // из пробелов, а « название » сервер сохранит как есть
+            title: values.title.trim(),
             // пустое поле отправляем как null, а не как ""
             description: values.description.trim() || null,
         };
